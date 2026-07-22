@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1
+ARG NODE_VERSION=20-alpine
+
+# ===============
+# Base Stage
+# ===============
+FROM node:${NODE_VERSION} AS base
+WORKDIR /app
+
+# ===============
+# Dependencies Stage
+# ===============
+FROM base AS deps
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev && \
+    npm cache clean --force
+
+# ===============
+# Build Stage
+# ===============
+FROM base AS build
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+# ===============
+# Production Stage
+# ===============
+FROM base AS production
+ENV NODE_ENV=production
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 -G nodejs
+
+# Copy dependencies and build
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package.json ./
+
+# Set ownership
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+EXPOSE 3000
+
+CMD ["node", "dist/server.js"]

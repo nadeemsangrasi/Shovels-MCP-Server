@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Code Skill Frontmatter Schema",
+  "description": "JSON Schema for validating YAML frontmatter in Claude Code SKILL.md files",
+  "type": "object",
+  "required": ["name", "description"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Skill identifier (lowercase, hyphens only, max 64 chars)",
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "examples": [
+        "commit-messages",
+        "api-tester",
+        "code-reviewer"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "What skill does and when to use it (max 1024 chars, no XML tags)",
+      "maxLength": 1024,
+      "minLength": 1,
+      "pattern": "^[^<>]+$",
+      "examples": [
+        "Generate semantic commit messages from git diffs following Conventional Commits. Use when writing commit messages or staging changes.",
+        "Test REST APIs with automated validation of status codes, response structure, and data types. Use for API testing, integration verification, or debugging endpoints."
+      ]
+    },
+    "version": {
+      "type": "string",
+      "description": "Skill version following semantic versioning (MAJOR.MINOR.PATCH)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?(\\+[a-zA-Z0-9.]+)?$",
+      "examples": [
+        "1.0.0",
+        "2.1.3",
+        "1.0.0-beta.1"
+      ]
+    },
+    "allowed-tools": {
+      "type": "string",
+      "description": "Comma-separated list of tools Claude can use during skill execution",
+      "pattern": "^[A-Za-z]+(,\\s*[A-Za-z]+)*$",
+      "examples": [
+        "Bash, Read, Write",
+        "Read, Grep, Glob",
+        "Bash, Read, Write, Grep, Glob, Edit"
+      ]
+    },
+    "author": {
+      "type": "string",
+      "description": "Skill creator or maintainer name",
+      "maxLength": 256,
+      "examples": [
+        "Your Name",
+        "Company Team",
+        "community@example.com"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "description": "Categories for skill organization and discovery",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$",
+        "maxLength": 32
+      },
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "examples": [
+        ["api", "testing", "automation"],
+        ["git", "commit", "development"],
+        ["documentation", "markdown"]
+      ]
+    },
+    "category": {
+      "type": "string",
+      "description": "Primary category for skill classification",
+      "enum": [
+        "development",
+        "testing",
+        "documentation",
+        "automation",
+        "analysis",
+        "security",
+        "deployment",
+        "database",
+        "api",
+        "git",
+        "data-processing",
+        "reporting",
+        "utility",
+        "other"
+      ]
+    },
+    "license": {
+      "type": "string",
+      "description": "License identifier (SPDX format preferred)",
+      "examples": [
+        "MIT",
+        "Apache-2.0",
+        "GPL-3.0",
+        "Proprietary"
+      ]
+    },
+    "homepage": {
+      "type": "string",
+      "description": "URL to skill documentation or repository",
+      "format": "uri",
+      "examples": [
+        "https://github.com/user/skill-name",
+        "https://skills.company.com/api-tester"
+      ]
+    },
+    "repository": {
+      "type": "string",
+      "description": "URL to skill source code repository",
+      "format": "uri",
+      "examples": [
+        "https://github.com/user/skill-name.git"
+      ]
+    },
+    "bugs": {
+      "type": "string",
+      "description": "URL to issue tracker",
+      "format": "uri",
+      "examples": [
+        "https://github.com/user/skill-name/issues"
+      ]
+    },
+    "keywords": {
+      "type": "array",
+      "description": "Search keywords for skill discovery (deprecated, use tags instead)",
+      "items": {
+        "type": "string"
+      },
+      "deprecated": true
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "name": "commit-messages",
+      "description": "Generate semantic commit messages from git diffs following Conventional Commits. Use when writing commit messages or staging changes.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "api-tester",
+      "description": "Test REST APIs with automated validation of status codes, response structure, and data types. Use for API testing, integration verification, or debugging endpoints.",
+      "version": "2.1.0",
+      "allowed-tools": "Bash, Read, Write",
+      "author": "Development Team",
+      "tags": ["api", "testing", "automation"],
+      "category": "testing",
+      "license": "MIT",
+      "homepage": "https://github.com/company/api-tester",
+      "repository": "https://github.com/company/api-tester.git",
+      "bugs": "https://github.com/company/api-tester/issues"
+    }
+  ]
+}

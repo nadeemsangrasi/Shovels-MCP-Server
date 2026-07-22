@@ -10,17 +10,18 @@ import pytest
 from src.models.shovels_models import (
     PermitSearchResult,
     ContractorSearchResult,
-    DecisionSearchResult,
     GeoResult,
     PermitDetail,
     ContractorDetail,
-    DecisionDetail,
     SearchResponse,
     PermitsSearchParams,
     ContractorsSearchParams,
-    DecisionsSearchParams,
     GeoParams,
     ErrorResponse,
+    Tag,
+    UsageInfo,
+    ContractorEmployee,
+    ContractorMetric,
 )
 
 
@@ -92,29 +93,6 @@ class TestContractorSearchResult:
         result = ContractorSearchResult(id="x", resource="shovels://contractors/x")
         assert result.name == ""
         assert result.city is None
-
-
-class TestDecisionSearchResult:
-    """DecisionSearchResult validation tests."""
-
-    def test_valid_decision(self):
-        data = {
-            "id": "dec-456",
-            "category": "Rezoning",
-            "status": "approved",
-            "date": "2026-03-15",
-            "description": "Rezone from residential to commercial",
-            "resource": "shovels://decisions/dec-456",
-        }
-        result = DecisionSearchResult(**data)
-        assert result.id == "dec-456"
-        assert result.category == "Rezoning"
-        assert result.date == "2026-03-15"
-
-    def test_minimal_decision(self):
-        result = DecisionSearchResult(id="x", resource="shovels://decisions/x")
-        assert result.category == ""
-        assert result.description is None
 
 
 class TestGeoResult:
@@ -194,28 +172,6 @@ class TestContractorDetail:
         result = ContractorDetail(id="c123")
         assert result.license_number is None
         assert result.active_permits_count is None
-
-
-class TestDecisionDetail:
-    """DecisionDetail validation tests."""
-
-    def test_valid_full_decision(self):
-        data = {
-            "id": "d123",
-            "category": "Variance",
-            "status": "approved",
-            "description": "Side-yard variance granted",
-            "city": "Portland",
-            "state": "OR",
-        }
-        result = DecisionDetail(**data)
-        assert result.category == "Variance"
-        assert result.city == "Portland"
-
-    def test_minimal_decision_detail(self):
-        result = DecisionDetail(id="d123")
-        assert result.date is None
-        assert result.geo_id is None
 
 
 # ─── Generic SearchResponse ──────────────────────────────
@@ -325,27 +281,6 @@ class TestContractorsSearchParams:
         assert params.contractor_name == "ABC"
 
 
-class TestDecisionsSearchParams:
-    """DecisionsSearchParams validation tests."""
-
-    def test_valid_params(self):
-        params = DecisionsSearchParams(
-            geo_id="geo_ca",
-            decision_from="2026-01-01",
-            decision_to="2026-06-30",
-        )
-        assert params.geo_id == "geo_ca"
-
-    def test_decision_q_max_length(self):
-        with pytest.raises(pydantic.ValidationError):
-            DecisionsSearchParams(
-                geo_id="x",
-                decision_from="2026-01-01",
-                decision_to="2026-06-30",
-                decision_q="x" * 101,  # exceeds max_length=100
-            )
-
-
 class TestGeoParams:
     """GeoParams validation tests."""
 
@@ -374,3 +309,58 @@ class TestErrorResponse:
     def test_with_details(self):
         err = ErrorResponse(error="bad_request", message="Invalid params", details={"field": "geo_id"})
         assert err.details == {"field": "geo_id"}
+
+
+# ─── New v2 models ───────────────────────────────────────
+
+class TestTag:
+    """Tag model tests."""
+
+    def test_valid_tag(self):
+        tag = Tag(tag="new_construction", description="New building construction")
+        assert tag.tag == "new_construction"
+        assert tag.description == "New building construction"
+
+    def test_tag_without_description(self):
+        tag = Tag(tag="alteration")
+        assert tag.tag == "alteration"
+        assert tag.description is None
+
+
+class TestUsageInfo:
+    """UsageInfo model tests."""
+
+    def test_valid_usage(self):
+        usage = UsageInfo(credits_used=1, credits_remaining=199, credits_limit=250)
+        assert usage.credits_used == 1
+        assert usage.credits_remaining == 199
+
+    def test_default_values(self):
+        usage = UsageInfo()
+        assert usage.credits_used == 0
+
+
+class TestContractorEmployee:
+    """ContractorEmployee model tests."""
+
+    def test_valid_employee(self):
+        emp = ContractorEmployee(id="e1", name="Jane Smith", role="Electrician")
+        assert emp.name == "Jane Smith"
+        assert emp.role == "Electrician"
+
+    def test_employee_without_role(self):
+        emp = ContractorEmployee(id="e1", name="Jane Smith")
+        assert emp.role is None
+
+
+class TestContractorMetric:
+    """ContractorMetric model tests."""
+
+    def test_valid_metric(self):
+        metric = ContractorMetric(month="2026-01", total_job_value_cents=500000, permit_count=5)
+        assert metric.month == "2026-01"
+        assert metric.permit_count == 5
+
+    def test_minimal_metric(self):
+        metric = ContractorMetric(month="2026-01")
+        assert metric.total_job_value_cents is None

@@ -59,12 +59,16 @@ Optional:  level  — "address" | "city" | "county" | "jurisdiction" | "state"
 **Without `level`** (auto fallback):
 The tool tries address → city → county → jurisdiction → state and returns the first match.
 
-**🔍 Fuzzy matching for states:**
-Common state name typos are auto-corrected before hitting the API:
+**🔍 Fuzzy matching for states (all queries, any level):**
+Common state name typos and full state names are auto-corrected:
 ```json
 {"query": "Taxas", "level": "state"}
 → {"items": [{"geo_id": "TX", "name": "Texas"}], "_note": "Resolved 'Taxas' to state code 'TX'"}
+
+{"query": "california"}
+→ {"items": [{"geo_id": "CA", "name": "California"}], "_note": "Resolved 'california' to state code 'CA'"}
 ```
+This works for full names ("california", "texas"), abbreviations ("TX", "CA"), and common typos ("Taxas", "californa").
 
 **📋 Helpful notes are added to responses:**
 - When a query falls through to address level, a `_note` field suggests using `level='jurisdiction'` for broader results
@@ -251,16 +255,13 @@ All responses have null/empty fields stripped to reduce payload size. A 162k-cha
 
 ### Fetch by ID limitation
 
-The Shovels API does **not** expose individual `GET /{resource}/{id}` endpoints for most resource types. The search endpoints already return complete records. The `ids` parameter will attempt fetch-by-ID but may return a "Not Found" message with a suggestion to search instead.
+Fetch-by-ID (`ids` parameter) has been **removed** from all tools. The Shovels API does not support individual `GET /{resource}/{id}` endpoints. Search results already contain **complete records** — there is no separate detail-lookup step needed.
 
----
+If you need to find a specific record, refine your search parameters (geo_id, dates, filters) rather than trying to fetch by ID.
 
-## Credits & Rate Limits
+### Credits & Rate Limits
 
 - Free trial: **250 requests** (flat, any size)
-- Every response includes **three credit headers** so the agent can track usage:
-  - `X-Credits-Request` — credits used by this request
-  - `X-Credits-Limit` — total credits available
-  - `X-Credits-Remaining` — credits left
-- Example: `{"X-Credits-Remaining": "199", "X-Credits-Limit": "250"}`
+- The Shovels API sends `X-Credits-Request` (credits used per call) in every response
+- Note: `X-Credits-Remaining` and `X-Credits-Limit` are **not** provided by the upstream API
 - 429 errors are handled cleanly with a descriptive message

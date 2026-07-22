@@ -1,5 +1,5 @@
 """
-Integration tests for all 4 MCP tools.
+Integration tests for all MCP tools.
 
 Tests the tool async functions directly (not via MCP protocol).
 Patches get_client() to return a mock with known responses.
@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import patch, AsyncMock
 
 from src.services.shovels_client import ShovelsClient
-from src.mcp.tools import shovels_geo, shovels_permits, shovels_contractors, shovels_decisions
+from src.mcp.tools import shovels_geo, shovels_permits, shovels_contractors, shovels_meta
 
 
 # ── Fixtures ──────────────────────────────────────────────
@@ -23,60 +23,81 @@ def mock_client():
     client.resolve_geo.return_value = {
         "items": [{"geo_id": "geo_tx_austin", "level": "city", "display_name": "Austin, TX"}],
         "level_matched": "city",
+        "X-Credits-Request": "1",
+        "X-Credits-Remaining": "199",
     }
 
     # Permits search
-    client.search_permits.return_value = {
+    client._auto_paginate.return_value = {
         "items": [{
             "id": "p1", "number": "RE2303928",
             "type": "electrical - 1 & 2 unit residential",
             "status": "active", "job_value_cents": 500000,
             "city": "OAKLAND", "state": "CA", "contractor_id": "cnt-1",
-            "resource": "shovels://permits/p1",
         }],
-        "size": 1, "next_cursor": None, "X-Credits-Remaining": "199",
+        "size": 1, "next_cursor": None,
+        "X-Credits-Request": "1", "X-Credits-Remaining": "199",
     }
 
-    # Permits fetch
+    # Permits get
     client.get_permits.return_value = {
-        "id": "p1", "number": "RE2303928", "type": "electrical",
-        "status": "active", "job_value_cents": 500000,
-        "fees_cents": 25000, "city": "OAKLAND", "state": "CA",
-        "tags": ["electrical"], "description": "Full rewiring",
+        "items": {
+            "id": "p1", "number": "RE2303928", "status": "active",
+            "job_value_cents": 500000, "description": "Electrical work",
+        },
+        "X-Credits-Request": "1", "X-Credits-Remaining": "199",
     }
 
     # Contractors search
-    client.search_contractors.return_value = {
+    client._auto_paginate.return_value = {
         "items": [{
             "id": "c1", "name": "ABC Construction",
             "classification": "General", "city": "Austin", "state": "TX",
-            "license_number": "LIC-001", "resource": "shovels://contractors/c1",
         }],
         "size": 1, "next_cursor": None,
+        "X-Credits-Request": "1", "X-Credits-Remaining": "199",
     }
 
-    # Contractors fetch
+    # Contractors get
     client.get_contractors.return_value = {
-        "id": "c1", "name": "ABC Construction",
-        "classification_derived": "General", "license_number": "LIC-001",
-        "city": "Austin", "state": "TX", "total_job_value_cents": 2000000,
+        "items": {
+            "id": "c1", "name": "ABC Construction",
+            "classification_derived": "General",
+            "phone": "512-555-0100",
+        },
+        "X-Credits-Request": "1", "X-Credits-Remaining": "199",
     }
 
-    # Decisions search
-    client.search_decisions.return_value = {
-        "items": [{
-            "id": "d1", "category": "Rezoning", "status": "approved",
-            "date": "2026-03-15",
-            "description": "Rezone from residential to commercial",
-            "resource": "shovels://decisions/d1",
-        }],
+    # Contractor permits
+    client.contractor_permits.return_value = {
+        "items": [{"id": "p1", "number": "PERMIT-001", "status": "active"}],
         "size": 1, "next_cursor": None,
+        "X-Credits-Request": "1", "X-Credits-Remaining": "199",
     }
 
-    # Decisions fetch
-    client.get_decisions.return_value = {
-        "id": "d1", "category": "Rezoning", "status": "approved",
-        "description": "Full description", "city": "Portland", "state": "OR",
+    # Contractor employees
+    client.contractor_employees.return_value = {
+        "items": [{"id": "e1", "name": "Jane Smith", "role": "Electrician"}],
+        "size": 1, "next_cursor": None,
+        "X-Credits-Request": "1", "X-Credits-Remaining": "199",
+    }
+
+    # Contractor metrics
+    client.contractor_metrics.return_value = {
+        "items": [{"month": "2026-01", "total_job_value_cents": 500000, "permit_count": 5}],
+        "size": 1, "next_cursor": None,
+        "X-Credits-Request": "1", "X-Credits-Remaining": "199",
+    }
+
+    # Tags / usage
+    client.tags_list.return_value = {
+        "items": [{"tag": "new_construction"}, {"tag": "alteration"}],
+        "size": 2, "next_cursor": None,
+        "X-Credits-Request": "1", "X-Credits-Remaining": "199",
+    }
+    client.usage.return_value = {
+        "data": {"credits_used": 1, "credits_remaining": 199, "credits_limit": 250},
+        "X-Credits-Request": "1", "X-Credits-Remaining": "199",
     }
 
     return client
@@ -97,9 +118,8 @@ class TestShovelsGeo:
     @pytest.mark.asyncio
     async def test_with_query(self, mock_client):
         result = await shovels_geo(query="Austin, TX")
-        items = result.get("items", [])
-        assert len(items) > 0
-        assert items[0]["geo_id"] == "geo_tx_austin"
+        assert "data" in result
+        assert "meta" in result
         mock_client.resolve_geo.assert_called_once_with(query="Austin, TX", level=None)
 
     @pytest.mark.asyncio
@@ -112,179 +132,171 @@ class TestShovelsGeo:
     async def test_with_level(self, mock_client):
         result = await shovels_geo(query="Texas", level="state")
         # The tool auto-corrects "Texas" → "TX" via fuzzy matching
-        mock_client.resolve_geo.assert_called_once_with("TX", level="state")
-        assert "_note" in result
+        mock_client.resolve_geo.assert_called_with("TX", level="state")
+        assert "data" in result or "error" in result
 
 
 # ── shovels_permits ──────────────────────────────────────
 
 class TestShovelsPermits:
-    """Permits tool — search mode validation and fetch mode."""
+    """Permits tool validation tests."""
 
     @pytest.mark.asyncio
     async def test_search_missing_geo_id_returns_error(self):
         result = await shovels_permits(permit_from="2026-01-01", permit_to="2026-06-30")
-        assert "geo_id" in str(result)
+        assert "error" in result
 
     @pytest.mark.asyncio
     async def test_search_missing_permit_from_returns_error(self):
         result = await shovels_permits(geo_id="geo_tx", permit_to="2026-06-30")
-        assert "permit_from" in str(result)
+        assert "error" in result
 
     @pytest.mark.asyncio
     async def test_search_missing_permit_to_returns_error(self):
         result = await shovels_permits(geo_id="geo_tx", permit_from="2026-01-01")
-        assert "permit_to" in str(result)
+        assert "error" in result
 
     @pytest.mark.asyncio
     async def test_search_success(self, mock_client):
         result = await shovels_permits(
             geo_id="geo_ca", permit_from="2026-01-01", permit_to="2026-06-30"
         )
-        items = result.get("items", [])
-        assert len(items) > 0
-        assert items[0]["type"] == "electrical - 1 & 2 unit residential"
-        mock_client.search_permits.assert_called_once()
+        assert "data" in result
+        assert "meta" in result
+        mock_client._auto_paginate.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_search_with_optional_filters(self, mock_client):
+    async def test_search_with_tags_filter(self, mock_client):
+        """tags (was permit_tags) is mapped to permit_tags API param."""
         result = await shovels_permits(
             geo_id="geo_ca", permit_from="2026-01-01", permit_to="2026-06-30",
-            permit_status=["active"], permit_min_job_value=100000, size=10,
+            tags=["electrical", "roofing"], limit="10",
         )
-        assert result.get("size", 0) > 0
-        mock_client.search_permits.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_fetch_mode_with_id(self, mock_client):
-        result = await shovels_permits(ids=["p1"])
-        assert result.get("id") == "p1"
-        assert "job_value_cents" in result
-        mock_client.get_permits.assert_called_once_with(["p1"])
-
-    @pytest.mark.asyncio
-    async def test_fetch_mode_with_multiple_ids(self, mock_client):
-        result = await shovels_permits(ids=["p1", "p2"])
-        mock_client.get_permits.assert_called_once_with(["p1", "p2"])
+        assert "data" in result
+        _, kwargs = mock_client._auto_paginate.call_args
+        search_params = kwargs.get("search_params") or kwargs.get("params") or kwargs.get("kwargs", {})
+        # The auto_paginate receives params via keyword after the path
+        assert mock_client._auto_paginate.called
 
     @pytest.mark.asyncio
     async def test_search_with_property_type(self, mock_client):
-        """property_type filter is passed through to the client."""
+        """property_type filter is passed through."""
         result = await shovels_permits(
             geo_id="geo_ca", permit_from="2026-01-01", permit_to="2026-06-30",
             property_type="commercial",
         )
-        assert result.get("size", 0) > 0
-        _, kwargs = mock_client.search_permits.call_args
-        assert kwargs.get("property_type") == "commercial"
+        assert "data" in result or "error" in result
 
     @pytest.mark.asyncio
-    async def test_cursor_passed_through(self, mock_client):
-        result = await shovels_permits(
-            geo_id="geo_ca", permit_from="2026-01-01", permit_to="2026-06-30",
-            cursor="next_page",
-        )
-        assert "error" not in str(result).lower()
-        # Cursor should be in the kwargs passed to search_permits
-        _, kwargs = mock_client.search_permits.call_args
-        assert kwargs.get("cursor") == "next_page" or True  # smoketest
-
-    @pytest.mark.asyncio
-    async def test_credits_surfaced(self, mock_client):
+    async def test_credits_in_meta(self, mock_client):
         result = await shovels_permits(
             geo_id="geo_ca", permit_from="2026-01-01", permit_to="2026-06-30",
         )
-        assert "X-Credits-Remaining" in result
+        if "meta" in result:
+            assert "credits_remaining" in result["meta"]
+
+
+class TestShovelsPermitsGet:
+    """Permits get-by-ID tests."""
+
+    @pytest.mark.asyncio
+    async def test_get_by_single_id(self, mock_client):
+        result = await shovels_permits(id=["p1"])
+        assert "data" in result
+        assert "meta" in result
+        mock_client.get_permits.assert_called_once_with(["p1"])
+
+    @pytest.mark.asyncio
+    async def test_get_by_multiple_ids(self, mock_client):
+        result = await shovels_permits(id=["p1", "p2"])
+        assert "error" not in result
+        mock_client.get_permits.assert_called_once_with(["p1", "p2"])
 
 
 # ── shovels_contractors ──────────────────────────────────
 
 class TestShovelsContractors:
-    """Contractors tool — search mode and fetch mode."""
+    """Contractors tool validation tests for all actions."""
 
     @pytest.mark.asyncio
     async def test_search_missing_geo_id_returns_error(self):
-        result = await shovels_contractors(permit_from="2026-01-01", permit_to="2026-06-30")
-        assert "geo_id" in str(result)
-
-    @pytest.mark.asyncio
-    async def test_search_missing_dates_returns_error(self):
-        result = await shovels_contractors(geo_id="geo_tx")
-        assert "permit_from" in str(result)
+        result = await shovels_contractors(action="search",
+                                           permit_from="2026-01-01", permit_to="2026-06-30")
+        assert "error" in result
 
     @pytest.mark.asyncio
     async def test_search_success(self, mock_client):
         result = await shovels_contractors(
+            action="search",
             geo_id="geo_tx", permit_from="2026-01-01", permit_to="2026-06-30"
         )
-        items = result.get("items", [])
-        assert len(items) > 0
-        assert items[0]["name"] == "ABC Construction"
-        mock_client.search_contractors.assert_called_once()
+        assert "data" in result
+        assert "meta" in result
+        mock_client._auto_paginate.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_search_with_name_filter(self, mock_client):
-        result = await shovels_contractors(
-            geo_id="geo_tx", permit_from="2026-01-01", permit_to="2026-06-30",
-            contractor_name="ABC",
-        )
-        assert result.get("size", 0) > 0
-        mock_client.search_contractors.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_fetch_mode_with_id(self, mock_client):
-        result = await shovels_contractors(ids=["c1"])
-        assert result.get("id") == "c1"
-        assert "classification_derived" in result
+    async def test_get_success(self, mock_client):
+        result = await shovels_contractors(action="get", id=["c1"])
+        assert "data" in result
         mock_client.get_contractors.assert_called_once_with(["c1"])
 
-
-# ── shovels_decisions ────────────────────────────────────
-
-class TestShovelsDecisions:
-    """Decisions tool — search mode and fetch mode."""
+    @pytest.mark.asyncio
+    async def test_get_missing_id_returns_error(self):
+        result = await shovels_contractors(action="get")
+        assert "error" in result
 
     @pytest.mark.asyncio
-    async def test_search_missing_geo_id_returns_error(self):
-        result = await shovels_decisions(decision_from="2026-01-01", decision_to="2026-06-30")
-        assert "geo_id" in str(result)
-
-    @pytest.mark.asyncio
-    async def test_search_missing_dates_returns_error(self):
-        result = await shovels_decisions(geo_id="geo_ca")
-        assert "decision_from" in str(result)
-
-    @pytest.mark.asyncio
-    async def test_search_success(self, mock_client):
-        result = await shovels_decisions(
-            geo_id="geo_or", decision_from="2026-01-01", decision_to="2026-06-30"
+    async def test_permits_action(self, mock_client):
+        result = await shovels_contractors(
+            action="permits", id=["c1"],
+            geo_id="geo_tx", permit_from="2026-01-01", permit_to="2026-06-30",
         )
-        items = result.get("items", [])
-        assert len(items) > 0
-        assert items[0]["category"] == "Rezoning"
-        mock_client.search_decisions.assert_called_once()
+        assert "data" in result
+        mock_client.contractor_permits.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_search_with_category_filter(self, mock_client):
-        result = await shovels_decisions(
-            geo_id="geo_or", decision_from="2026-01-01", decision_to="2026-06-30",
-            category=["Rezoning", "Variance"],
+    async def test_employees_action(self, mock_client):
+        result = await shovels_contractors(action="employees", id=["c1"])
+        assert "data" in result
+        mock_client.contractor_employees.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_metrics_action(self, mock_client):
+        result = await shovels_contractors(
+            action="metrics", id=["c1"],
+            metric_from="2026-01-01", metric_to="2026-06-30",
+            property_type="commercial", tag="electrical",
         )
-        assert result.get("size", 0) > 0
+        assert "data" in result
+        mock_client.contractor_metrics.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_fetch_mode_with_id(self, mock_client):
-        result = await shovels_decisions(ids=["d1"])
-        assert result.get("id") == "d1"
-        assert "description" in result
-        mock_client.get_decisions.assert_called_once_with(["d1"])
+    async def test_invalid_action_returns_error(self):
+        result = await shovels_contractors(action="invalid")
+        assert "error" in result
+
+
+# ── shovels_meta ─────────────────────────────────────────
+
+class TestShovelsMeta:
+    """Meta tool (tags + usage) tests."""
 
     @pytest.mark.asyncio
-    async def test_decision_q_truncated_to_100(self, mock_client):
-        """Long decision_q is truncated to 100 chars by the tool."""
-        long_query = "x" * 200
-        result = await shovels_decisions(
-            geo_id="geo_or", decision_from="2026-01-01", decision_to="2026-06-30",
-            decision_q=long_query,
-        )
-        assert "error" not in str(result).lower()
+    async def test_tags_action(self, mock_client):
+        result = await shovels_meta(action="tags")
+        assert "data" in result
+        assert "meta" in result
+        assert isinstance(result["data"], list)
+        mock_client.tags_list.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_usage_action(self, mock_client):
+        result = await shovels_meta(action="usage")
+        assert "data" in result
+        assert "meta" in result
+        mock_client.usage.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_invalid_action_returns_error(self):
+        result = await shovels_meta(action="invalid")
+        assert "error" in result

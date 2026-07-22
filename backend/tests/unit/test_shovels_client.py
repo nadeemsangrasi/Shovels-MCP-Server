@@ -6,16 +6,18 @@ mocked HTTP responses. Covers URL building, param passing, credit
 header extraction, error handling, and the singleton pattern.
 """
 
+import asyncio
 import pytest
 from unittest.mock import patch, AsyncMock
+import httpx
 from httpx import Request, Response
 
 from src.services.shovels_client import (
     ShovelsClient,
-    ShovelsClientError,
     get_client,
     reset_client,
 )
+from src.utils.errors import ShovelsClientError, ShovelsClientRateLimited
 
 
 # ── Fixtures ──────────────────────────────────────────────
@@ -277,51 +279,88 @@ class TestGetContractors:
         assert len(result["items"]) == 2
 
 
-# ── search_decisions ─────────────────────────────────────
+# ── tags_list ─────────────────────────────────────────────
 
-class TestSearchDecisions:
-    """Decisions search tests."""
+class TestTagsList:
+    """Tags list endpoint tests."""
 
     @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
-    async def test_required_params(self, mock_request, client):
+    async def test_returns_tags(self, mock_request, client):
+        mock_request.return_value = Response(200, json={
+            "items": [{"tag": "new_construction"}, {"tag": "alteration"}], "size": 2,
+        }, headers={"X-Credits-Remaining": "199"})
+        result = await client.tags_list(limit=50)
+        assert result["size"] == 2
+        _assert_url_contains(mock_request, "tags")
+        _assert_url_contains(mock_request, "size=50")
+
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_limit_passed(self, mock_request, client):
         mock_request.return_value = Response(200, json={"items": [], "size": 0}, headers={})
-        await client.search_decisions("geo_ca", "2026-01-01", "2026-06-30")
-        _assert_url_contains(mock_request, "decisions/search")
-        _assert_url_contains(mock_request, "decision_from=2026-01-01")
+        await client.tags_list(limit=10)
+        _assert_url_contains(mock_request, "size=10")
+
+
+# ── usage ─────────────────────────────────────────────────
+
+class TestUsage:
+    """Usage endpoint tests."""
 
     @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
-    async def test_decision_q_passed(self, mock_request, client):
-        mock_request.return_value = Response(200, json={"items": [], "size": 0}, headers={})
-        await client.search_decisions("geo_ca", "2026-01-01", "2026-06-30", decision_q="variance side yard")
-        _assert_url_contains(mock_request, "decision_q=variance+side+yard")
+    async def test_returns_usage(self, mock_request, client):
+        mock_request.return_value = Response(200, json={
+            "data": {"credits_used": 1, "credits_remaining": 199, "credits_limit": 250},
+        }, headers={"X-Credits-Remaining": "199"})
+        result = await client.usage()
+        assert "data" in result
+        _assert_url_contains(mock_request, "usage")
+
+
+# ── contractor sub-endpoints ─────────────────────────────
+
+class TestContractorPermits:
+    """Contractor permits list tests."""
 
     @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
-    async def test_category_filter(self, mock_request, client):
-        mock_request.return_value = Response(200, json={"items": [], "size": 0}, headers={})
-        await client.search_decisions("geo_ca", "2026-01-01", "2026-06-30", category=["Rezoning", "Variance"])
-        _assert_url_contains(mock_request, "category=Rezoning")
-        _assert_url_contains(mock_request, "category=Variance")
+    async def test_correct_endpoint(self, mock_request, client):
+        mock_request.return_value = Response(200, json={
+            "items": [{"id": "p1"}], "size": 1,
+        }, headers={"X-Credits-Remaining": "199"})
+        result = await client.contractor_permits(
+            "c1", "geo_tx", "2026-01-01", "2026-06-30"
+        )
+        assert result["size"] == 1
+        _assert_url_contains(mock_request, "contractors/c1/permits")
+        _assert_url_contains(mock_request, "geo_id=geo_tx")
 
 
-# ── get_decisions ────────────────────────────────────────
-
-class TestGetDecisions:
-    """Decisions fetch-by-ID tests."""
-
-    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
-    async def test_single_id(self, mock_request, client):
-        mock_request.return_value = Response(200, json={"id": "d1"}, headers={})
-        result = await client.get_decisions(["d1"])
-        assert result["id"] == "d1"
+class TestContractorEmployees:
+    """Contractor employees list tests."""
 
     @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
-    async def test_multiple_ids(self, mock_request, client):
-        mock_request.side_effect = [
-            Response(200, json={"id": "d1"}, headers={}),
-            Response(200, json={"id": "d2"}, headers={}),
-        ]
-        result = await client.get_decisions(["d1", "d2"])
-        assert len(result["items"]) == 2
+    async def test_correct_endpoint(self, mock_request, client):
+        mock_request.return_value = Response(200, json={
+            "items": [{"id": "e1", "name": "Jane"}], "size": 1,
+        }, headers={"X-Credits-Remaining": "199"})
+        result = await client.contractor_employees("c1")
+        assert result["size"] == 1
+        _assert_url_contains(mock_request, "contractors/c1/employees")
+
+
+class TestContractorMetrics:
+    """Contractor metrics tests."""
+
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_correct_endpoint(self, mock_request, client):
+        mock_request.return_value = Response(200, json={
+            "items": [{"month": "2026-01", "permit_count": 5}], "size": 1,
+        }, headers={"X-Credits-Remaining": "199"})
+        result = await client.contractor_metrics(
+            "c1", "2026-01-01", "2026-06-30", "commercial", "electrical"
+        )
+        assert result["size"] == 1
+        _assert_url_contains(mock_request, "contractors/c1/metrics")
+        _assert_url_contains(mock_request, "metric_from=2026-01-01")
 
 
 # ── resolve_geo ──────────────────────────────────────────
@@ -384,35 +423,141 @@ class TestResolveGeo:
 class TestErrorHandling:
     """Error responses raise ShovelsClientError after retry exhaustion."""
 
-    @pytest.mark.asyncio
-    async def test_401_unauthorized(self, client):
+    @patch("asyncio.sleep", new_callable=AsyncMock)  # make retries instant
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_401_unauthorized(self, mock_request, mock_sleep, client):
         """401 is a ShovelsClientError."""
-        with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = Response(
-                401, json={"detail": "Missing API Key"}, headers={"X-Credits-Remaining": "249"},
-            )
-            with pytest.raises(ShovelsClientError, match="401"):
-                await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+        mock_request.return_value = Response(
+            401, json={"detail": "Missing API Key"}, headers={"X-Credits-Remaining": "249"},
+        )
+        with pytest.raises(ShovelsClientError, match="401"):
+            await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
 
-    @pytest.mark.asyncio
-    async def test_429_rate_limit(self, client):
-        """429 raises rate limit error."""
-        with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = Response(
-                429, json={"detail": "Too Many Requests"}, headers={"X-Credits-Remaining": "0"},
-            )
-            with pytest.raises(ShovelsClientError, match="Rate limited"):
-                await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_429_rate_limit(self, mock_request, mock_sleep, client):
+        """429 raises rate limit error after retry exhaustion."""
+        mock_request.return_value = Response(
+            429, json={"detail": "Too Many Requests"}, headers={"X-Credits-Remaining": "0"},
+        )
+        with pytest.raises(ShovelsClientRateLimited, match="Rate limited"):
+            await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+        # RATE_LIMIT_RETRY_MAX=5 → 5 total attempts before raising
+        assert mock_request.call_count == 5
 
-    @pytest.mark.asyncio
-    async def test_500_server_error(self, client):
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_500_server_error(self, mock_request, mock_sleep, client):
         """5xx raises server error."""
-        with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = Response(
-                500, json={"detail": "Internal Server Error"}, headers={},
-            )
-            with pytest.raises(ShovelsClientError, match="500"):
-                await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+        mock_request.return_value = Response(
+            500, json={"detail": "Internal Server Error"}, headers={},
+        )
+        with pytest.raises(ShovelsClientError, match="500"):
+            await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+
+
+class TestRateLimitRetry:
+    """429 retry behavior tests."""
+
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_retries_then_succeeds(self, mock_request, mock_sleep, client):
+        """429 then 200 — succeeds on second attempt."""
+        mock_request.side_effect = [
+            Response(429, json={}, headers={"X-Credits-Remaining": "100", "Retry-After": "1"}),
+            Response(200, json={"items": [{"id": "p1"}], "size": 1}, headers={"X-Credits-Remaining": "99"}),
+        ]
+        result = await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+        assert result["size"] == 1
+        assert mock_request.call_count == 2
+
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_retry_after_header_used(self, mock_request, mock_sleep, client):
+        """Retry-After header is passed through."""
+        mock_request.side_effect = [
+            Response(429, json={}, headers={"X-Credits-Remaining": "100", "Retry-After": "2"}),
+            Response(200, json={"items": [{"id": "p1"}], "size": 1}, headers={"X-Credits-Remaining": "99"}),
+        ]
+        result = await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+        assert result["size"] == 1
+
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_network_error_retry(self, mock_request, mock_sleep, client):
+        """Network errors retry separately from rate limits."""
+        mock_request.side_effect = [
+            httpx.ConnectError("connection refused"),
+            Response(200, json={"items": [{"id": "p1"}], "size": 1}, headers={"X-Credits-Remaining": "199"}),
+        ]
+        result = await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+        assert result["size"] == 1
+        assert mock_request.call_count == 2
+
+
+# ── Auto-pagination ─────────────────────────────────────
+
+class TestAutoPaginate:
+    """_auto_paginate method tests."""
+
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_single_page_when_under_100(self, mock_request, mock_sleep, client):
+        """When target ≤ 100, single page is fetched (no cursor)."""
+        mock_request.return_value = Response(
+            200,
+            json={"items": [{"id": f"p{i}"} for i in range(3)], "size": 3, "next_cursor": None},
+            headers={"X-Credits-Remaining": "199"},
+        )
+        result = await client._auto_paginate("GET", "permits/search", {"geo_id": "tx"}, limit="50")
+        assert result["size"] == 3
+        _assert_url_contains(mock_request, "size=50")
+
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_accumulates_pages(self, mock_request, mock_sleep, client):
+        """Multiple pages are accumulated when target > 100."""
+        mock_request.side_effect = [
+            Response(200, json={
+                "items": [{"id": f"p{i}"} for i in range(100)],
+                "size": 100, "next_cursor": "cursor_1",
+            }, headers={"X-Credits-Remaining": "199"}),
+            Response(200, json={
+                "items": [{"id": f"p{i}"} for i in range(50)],
+                "size": 50, "next_cursor": None,
+            }, headers={"X-Credits-Remaining": "198"}),
+        ]
+        result = await client._auto_paginate("GET", "permits/search", {"geo_id": "tx"}, limit="150")
+        assert result["size"] == 150
+        assert mock_request.call_count == 2
+
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_all_limit_uses_max_records(self, mock_request, mock_sleep, client):
+        """limit='all' uses max_records as target."""
+        mock_request.return_value = Response(
+            200,
+            json={"items": [{"id": f"p{i}"} for i in range(100)], "size": 100, "next_cursor": None},
+            headers={"X-Credits-Remaining": "199"},
+        )
+        result = await client._auto_paginate("GET", "permits/search", {"geo_id": "tx"}, limit="all", max_records=100)
+        assert result["size"] == 100
+
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_safety_break_on_empty_items(self, mock_request, mock_sleep, client):
+        """Stops pagination if cursor is set but items are empty."""
+        mock_request.side_effect = [
+            Response(200, json={
+                "items": [{"id": "p1"}], "size": 1, "next_cursor": "c1",
+            }, headers={"X-Credits-Remaining": "199"}),
+            Response(200, json={
+                "items": [], "size": 0, "next_cursor": "c2",
+            }, headers={"X-Credits-Remaining": "198"}),
+        ]
+        result = await client._auto_paginate("GET", "permits/search", {"geo_id": "tx"}, limit="all", max_records=10000)
+        assert result["size"] == 1  # stopped after empty page
+        assert mock_request.call_count == 2
 
 
 # ── Singleton pattern ────────────────────────────────────

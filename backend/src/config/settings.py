@@ -18,6 +18,15 @@ class Settings(BaseSettings):
     # Retry / back-off
     MAX_RETRIES: int = 3
 
+    # Rate-limit (429) retry settings
+    RATE_LIMIT_RETRY_MAX: int = 5
+    RATE_LIMIT_INITIAL_BACKOFF: float = 1.0
+    RATE_LIMIT_MAX_BACKOFF: float = 60.0
+
+    # Pagination defaults
+    DEFAULT_LIMIT: int = 50
+    MAX_RECORDS: int = 10000
+
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -49,6 +49,37 @@ class DecisionSearchResult(BaseModel):
     resource: str = Field(..., description="URI to fetch full record")
 
 
+class Tag(BaseModel):
+    """Permit tag value from the tags list endpoint."""
+
+    tag: str = Field(..., description="Tag value")
+    description: Optional[str] = Field(default=None, description="Tag description")
+
+
+class UsageInfo(BaseModel):
+    """API credit usage information."""
+
+    credits_used: int = Field(default=0, description="Credits used by this request")
+    credits_remaining: int = Field(default=0, description="Credits remaining on this key")
+    credits_limit: int = Field(default=0, description="Credit limit for this key")
+
+
+class ContractorEmployee(BaseModel):
+    """Employee record for a contractor."""
+
+    id: str = Field(..., description="Employee ID")
+    name: str = Field(default="", description="Employee name")
+    role: Optional[str] = Field(default=None, description="Employee role")
+
+
+class ContractorMetric(BaseModel):
+    """Monthly metric record for a contractor."""
+
+    month: str = Field(..., description="Metric month (YYYY-MM)")
+    total_job_value_cents: Optional[int] = Field(default=None, description="Total job value in cents")
+    permit_count: Optional[int] = Field(default=None, description="Number of permits")
+
+
 class GeoResult(BaseModel):
     """Geo-resolution result from shovels_geo."""
 
@@ -108,20 +139,6 @@ class ContractorDetail(BaseModel):
     created_at: Optional[str] = Field(default=None, description="Record created date")
 
 
-class DecisionDetail(BaseModel):
-    """Full decision record returned when id is supplied."""
-
-    id: str = Field(..., description="Decision ID")
-    category: str = Field(default="", description="Decision category (e.g. Rezoning, Variance)")
-    status: str = Field(default="", description="Decision status")
-    date: Optional[str] = Field(default=None, description="Decision date")
-    description: Optional[str] = Field(default=None, description="Full description")
-    address_street: Optional[str] = Field(default=None, description="Street address")
-    city: Optional[str] = Field(default=None, description="City")
-    state: Optional[str] = Field(default=None, description="State")
-    zip_code: Optional[str] = Field(default=None, description="ZIP code")
-    geo_id: Optional[str] = Field(default=None, description="Associated geo_id")
-    created_at: Optional[str] = Field(default=None, description="Record created date")
 
 
 # ─── Generic search response ───
@@ -179,22 +196,6 @@ class ContractorsFetchParams(BaseModel):
     ids: list[str] = Field(..., min_length=1, description="One or more contractor IDs")
 
 
-class DecisionsSearchParams(BaseModel):
-    """Parameters for searching decisions."""
-
-    geo_id: str = Field(..., min_length=1, description="Required: state or place geo_id (ZIP not supported)")
-    decision_from: str = Field(..., description="Required: start date (YYYY-MM-DD)")
-    decision_to: str = Field(..., description="Required: end date (YYYY-MM-DD)")
-    category: Optional[list[str]] = Field(default=None, description="Filter by category (e.g. Rezoning, Variance)")
-    decision_q: Optional[str] = Field(default=None, max_length=100, description="Text search (max 100 chars)")
-    cursor: Optional[str] = Field(default=None, description="Pagination cursor")
-    size: int = Field(default=20, ge=1, le=100, description="Results per page (max 100)")
-
-
-class DecisionsFetchParams(BaseModel):
-    """Parameters for fetching full decision records by ID."""
-
-    ids: list[str] = Field(..., min_length=1, max_length=50, description="Decision IDs (max 50)")
 
 
 class GeoParams(BaseModel):

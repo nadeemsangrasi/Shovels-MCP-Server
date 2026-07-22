@@ -11,6 +11,7 @@ pip install python-jose[cryptography] passlib[bcrypt]
 ### Security Module
 
 **app/core/security.py:**
+
 ```python
 from datetime import datetime, timedelta
 from typing import Optional
@@ -52,6 +53,7 @@ def verify_token(token: str) -> Optional[dict]:
 ### Token Schemas
 
 **app/schemas/token.py:**
+
 ```python
 from pydantic import BaseModel
 
@@ -67,6 +69,7 @@ class TokenData(BaseModel):
 ### Authentication Endpoints
 
 **app/api/auth.py:**
+
 ```python
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -144,6 +147,7 @@ async def login(
 ### Protected Routes
 
 **app/api/deps.py:**
+
 ```python
 from typing import Optional
 from fastapi import Depends, HTTPException, status
@@ -233,13 +237,15 @@ pip install authlib httpx
 ```
 
 **Configuration:**
+
 ```env
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
-GOOGLE_REDIRECT_URI="http://localhost:8000/auth/google/callback"
+GOOGLE_REDIRECT_URI="https://shovels-mcp-server.onrender.com/mcp/auth/google/callback"
 ```
 
 **Implementation:**
+
 ```python
 from authlib.integrations.starlette_client import OAuth
 
@@ -300,6 +306,7 @@ async def protected_route(api_key: str = Depends(verify_api_key)):
 ## Refresh Tokens
 
 **Extended Token Schema:**
+
 ```python
 class TokenPair(BaseModel):
     access_token: str
@@ -308,6 +315,7 @@ class TokenPair(BaseModel):
 ```
 
 **Create Refresh Token:**
+
 ```python
 def create_refresh_token(data: dict) -> str:
     """Create JWT refresh token (longer expiration)."""

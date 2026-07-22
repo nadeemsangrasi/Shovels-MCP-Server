@@ -15,6 +15,7 @@ python3 --version
 ### Package Manager
 
 Choose one:
+
 - **pip** - Standard Python package installer (included with Python)
 - **poetry** - Modern dependency management and packaging
 - **pip-tools** - Pip with requirements compilation
@@ -24,16 +25,19 @@ Choose one:
 ### Method 1: pip with Standard Installation
 
 **Basic installation:**
+
 ```bash
 pip install fastapi
 ```
 
 **With all optional dependencies:**
+
 ```bash
 pip install "fastapi[standard]"
 ```
 
 This includes:
+
 - `uvicorn[standard]` - ASGI server with auto-reload
 - `pydantic-settings` - Settings management
 - `pydantic-extra-types` - Extra Pydantic types
@@ -43,6 +47,7 @@ This includes:
 - `python-email-validator` - Email validation
 
 **Production-ready installation:**
+
 ```bash
 pip install fastapi uvicorn[standard] sqlalchemy pydantic-settings python-multipart
 ```
@@ -50,32 +55,38 @@ pip install fastapi uvicorn[standard] sqlalchemy pydantic-settings python-multip
 ### Method 2: Poetry (Recommended for Projects)
 
 **Install Poetry:**
+
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
 **Create new project:**
+
 ```bash
 poetry new my-fastapi-project
 cd my-fastapi-project
 ```
 
 **Add FastAPI dependencies:**
+
 ```bash
 poetry add fastapi uvicorn[standard] sqlalchemy pydantic-settings
 ```
 
 **Add development dependencies:**
+
 ```bash
 poetry add --group dev pytest httpx black mypy
 ```
 
 **Install dependencies:**
+
 ```bash
 poetry install
 ```
 
 **Activate virtual environment:**
+
 ```bash
 poetry shell
 ```
@@ -83,6 +94,7 @@ poetry shell
 ### Method 3: pip with Virtual Environment
 
 **Create virtual environment:**
+
 ```bash
 # Unix/macOS
 python3 -m venv venv
@@ -94,12 +106,14 @@ venv\Scripts\activate
 ```
 
 **Install dependencies:**
+
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 **requirements.txt:**
+
 ```
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
@@ -116,6 +130,7 @@ python-dotenv==1.0.0
 ### Required Packages
 
 **fastapi**
+
 - Core FastAPI framework
 - Automatic API documentation
 - Data validation via Pydantic
@@ -125,6 +140,7 @@ pip install fastapi
 ```
 
 **uvicorn**
+
 - ASGI server to run FastAPI
 - Development server with hot reload
 - Production-ready
@@ -136,6 +152,7 @@ pip install "uvicorn[standard]"
 ### Common Optional Dependencies
 
 **Database:**
+
 ```bash
 # SQLAlchemy ORM
 pip install sqlalchemy
@@ -153,6 +170,7 @@ pip install pymysql
 ```
 
 **Authentication:**
+
 ```bash
 # JWT tokens
 pip install python-jose[cryptography]
@@ -165,6 +183,7 @@ pip install python-oauth2
 ```
 
 **Configuration:**
+
 ```bash
 # Environment variable management
 pip install python-dotenv
@@ -174,18 +193,21 @@ pip install pydantic-settings
 ```
 
 **Forms and File Uploads:**
+
 ```bash
 # Form data and file uploads
 pip install python-multipart
 ```
 
 **Email Validation:**
+
 ```bash
 # Email field validation
 pip install email-validator
 ```
 
 **Development Tools:**
+
 ```bash
 # Testing
 pip install pytest httpx
@@ -208,16 +230,19 @@ pip install watchfiles
 ### PostgreSQL
 
 **Synchronous:**
+
 ```bash
 pip install psycopg2-binary
 ```
 
 **Async:**
+
 ```bash
 pip install asyncpg
 ```
 
 **Connection string:**
+
 ```
 postgresql://user:password@localhost:5432/dbname
 # Async
@@ -227,16 +252,19 @@ postgresql+asyncpg://user:password@localhost:5432/dbname
 ### MySQL/MariaDB
 
 **Synchronous:**
+
 ```bash
 pip install pymysql
 ```
 
 **Async:**
+
 ```bash
 pip install aiomysql
 ```
 
 **Connection string:**
+
 ```
 mysql+pymysql://user:password@localhost:3306/dbname
 # Async
@@ -246,11 +274,13 @@ mysql+aiomysql://user:password@localhost:3306/dbname
 ### SQLite
 
 **Built-in (no installation needed):**
+
 ```python
 DATABASE_URL = "sqlite:///./app.db"
 ```
 
 **Async:**
+
 ```bash
 pip install aiosqlite
 ```
@@ -385,6 +415,7 @@ poetry show
 ### Test Installation
 
 **Create test file `test.py`:**
+
 ```python
 from fastapi import FastAPI
 
@@ -400,18 +431,20 @@ if __name__ == "__main__":
 ```
 
 **Run:**
+
 ```bash
 python test.py
 ```
 
-**Visit:** http://localhost:8000
-**API Docs:** http://localhost:8000/docs
+**Visit:** https://shovels-mcp-server.onrender.com/mcp
+**API Docs:** https://shovels-mcp-server.onrender.com/mcp/docs
 
 ## Common Installation Issues
 
 ### Issue: "ModuleNotFoundError: No module named 'fastapi'"
 
 **Solution:**
+
 ```bash
 # Ensure you're in the correct virtual environment
 which python  # Unix/macOS
@@ -424,6 +457,7 @@ pip install fastapi
 ### Issue: "uvicorn: command not found"
 
 **Solution:**
+
 ```bash
 # Install uvicorn
 pip install "uvicorn[standard]"
@@ -435,6 +469,7 @@ python -m uvicorn app.main:app --reload
 ### Issue: PostgreSQL driver errors
 
 **Solution:**
+
 ```bash
 # For macOS (if psycopg2 fails)
 brew install postgresql
@@ -451,6 +486,7 @@ pip install psycopg2-binary
 ### Issue: "cryptography" build errors
 
 **Solution:**
+
 ```bash
 # Install build dependencies
 # macOS
@@ -495,7 +531,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ### docker-compose.yml
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   api:
@@ -527,6 +563,7 @@ volumes:
 ```
 
 **Run:**
+
 ```bash
 docker-compose up --build
 ```
@@ -552,6 +589,7 @@ docker-compose up --build
 ## Next Steps
 
 After installation:
+
 1. Create project structure (see project-structure.md)
 2. Configure database (see database-setup.md)
 3. Set up authentication (see authentication.md)

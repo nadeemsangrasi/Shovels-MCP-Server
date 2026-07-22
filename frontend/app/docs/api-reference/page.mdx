@@ -5,8 +5,9 @@ Direct HTTP API documentation for the Shovels MCP server.
 ## Base URL
 
 When running locally:
+
 ```
-http://localhost:8000
+https://shovels-mcp-server.onrender.com/mcp
 ```
 
 ## Authentication
@@ -27,11 +28,11 @@ Resolve free-text place names to Shovels geo_ids. **Required first step** before
 
 **Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `query` | `string` | Yes | Address, city, state code, or jurisdiction name |
-| `level` | `string` | No | `address`, `city`, `county`, `jurisdiction`, `state` |
-| `limit` | `string` | No | Results per search (default: "50") |
+| Param   | Type     | Required | Description                                          |
+| ------- | -------- | -------- | ---------------------------------------------------- |
+| `query` | `string` | Yes      | Address, city, state code, or jurisdiction name      |
+| `level` | `string` | No       | `address`, `city`, `county`, `jurisdiction`, `state` |
+| `limit` | `string` | No       | Results per search (default: "50")                   |
 
 **Example Request:**
 
@@ -77,19 +78,19 @@ Search U.S. building permits, or fetch full records by ID.
 
 **Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | `string[]` | For fetch | 1-50 permit IDs (switches to get-by-ID mode) |
-| `geo_id` | `string` | For search | State code, ZIP, or geo_id from shovels_geo |
-| `permit_from` | `string` | For search | Start date (YYYY-MM-DD) |
-| `permit_to` | `string` | For search | End date (YYYY-MM-DD) |
-| `tags` | `string[]` | No | Filter by work-type tags (electrical, roofing, etc.) |
-| `property_type` | `string` | No | commercial, residential, industrial, office, vacant_land, exempt, mixed_use |
-| `min_job_value` | `integer` | No | Minimum job value in cents |
-| `include_count` | `boolean` | No | Request total count |
-| `limit` | `string` | No | Results (1-100000, or "all") |
-| `max_records` | `integer` | No | Cap when limit="all" (default: 10000) |
-| `no_retry` | `boolean` | No | Disable automatic 429 retry |
+| Param           | Type       | Required   | Description                                                                 |
+| --------------- | ---------- | ---------- | --------------------------------------------------------------------------- |
+| `id`            | `string[]` | For fetch  | 1-50 permit IDs (switches to get-by-ID mode)                                |
+| `geo_id`        | `string`   | For search | State code, ZIP, or geo_id from shovels_geo                                 |
+| `permit_from`   | `string`   | For search | Start date (YYYY-MM-DD)                                                     |
+| `permit_to`     | `string`   | For search | End date (YYYY-MM-DD)                                                       |
+| `tags`          | `string[]` | No         | Filter by work-type tags (electrical, roofing, etc.)                        |
+| `property_type` | `string`   | No         | commercial, residential, industrial, office, vacant_land, exempt, mixed_use |
+| `min_job_value` | `integer`  | No         | Minimum job value in cents                                                  |
+| `include_count` | `boolean`  | No         | Request total count                                                         |
+| `limit`         | `string`   | No         | Results (1-100000, or "all")                                                |
+| `max_records`   | `integer`  | No         | Cap when limit="all" (default: 10000)                                       |
+| `no_retry`      | `boolean`  | No         | Disable automatic 429 retry                                                 |
 
 **Example Request:**
 
@@ -119,41 +120,41 @@ Search/fetch contractors, their permits, employees, or monthly metrics.
 
 **Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `action` | `string` | No | `search`, `get`, `permits`, `employees`, `metrics` |
-| `id` | `string[]` | For get/permits/employees/metrics | Contractor ID(s) |
-| `geo_id` | `string` | For search/permits | State code or geo_id |
-| `permit_from` | `string` | For search/permits | Start date (YYYY-MM-DD) |
-| `permit_to` | `string` | For search/permits | End date (YYYY-MM-DD) |
-| `contractor_classification` | `string` | No | Trade classification |
-| `metric_from` | `string` | For metrics | Start date (YYYY-MM-DD) |
-| `metric_to` | `string` | For metrics | End date (YYYY-MM-DD) |
-| `property_type` | `string` | For metrics | Property classification |
-| `tag` | `string` | For metrics | Work-type tag |
-| `include_count` | `boolean` | No | Request total count |
-| `limit` | `string` | No | Results (1-100000, or "all") |
-| `max_records` | `integer` | No | Cap when limit="all" |
-| `no_retry` | `boolean` | No | Disable automatic 429 retry |
+| Param                       | Type       | Required                          | Description                                        |
+| --------------------------- | ---------- | --------------------------------- | -------------------------------------------------- |
+| `action`                    | `string`   | No                                | `search`, `get`, `permits`, `employees`, `metrics` |
+| `id`                        | `string[]` | For get/permits/employees/metrics | Contractor ID(s)                                   |
+| `geo_id`                    | `string`   | For search/permits                | State code or geo_id                               |
+| `permit_from`               | `string`   | For search/permits                | Start date (YYYY-MM-DD)                            |
+| `permit_to`                 | `string`   | For search/permits                | End date (YYYY-MM-DD)                              |
+| `contractor_classification` | `string`   | No                                | Trade classification                               |
+| `metric_from`               | `string`   | For metrics                       | Start date (YYYY-MM-DD)                            |
+| `metric_to`                 | `string`   | For metrics                       | End date (YYYY-MM-DD)                              |
+| `property_type`             | `string`   | For metrics                       | Property classification                            |
+| `tag`                       | `string`   | For metrics                       | Work-type tag                                      |
+| `include_count`             | `boolean`  | No                                | Request total count                                |
+| `limit`                     | `string`   | No                                | Results (1-100000, or "all")                       |
+| `max_records`               | `integer`  | No                                | Cap when limit="all"                               |
+| `no_retry`                  | `boolean`  | No                                | Disable automatic 429 retry                        |
 
 ---
 
 ## MCP Tools Summary
 
-| Tool | Description |
-|------|-------------|
-| `shovels_geo` | Resolve free-text places to geo_ids |
-| `shovels_permits` | Search or fetch building permits |
+| Tool                  | Description                               |
+| --------------------- | ----------------------------------------- |
+| `shovels_geo`         | Resolve free-text places to geo_ids       |
+| `shovels_permits`     | Search or fetch building permits          |
 | `shovels_contractors` | Search/fetch contractors and related data |
-| `shovels_meta` | List permit tags or check credit usage |
+| `shovels_meta`        | List permit tags or check credit usage    |
 
 ## Error Codes
 
-| Status | Error Type | Description |
-|--------|------------|-------------|
-| 401 | `auth_error` | Invalid or missing API key |
-| 429 | `rate_limited` | Too many requests (auto-retried with backoff) |
-| 500 | `server_error` | Server error — try again later |
+| Status | Error Type     | Description                                   |
+| ------ | -------------- | --------------------------------------------- |
+| 401    | `auth_error`   | Invalid or missing API key                    |
+| 429    | `rate_limited` | Too many requests (auto-retried with backoff) |
+| 500    | `server_error` | Server error — try again later                |
 
 ## Notes
 

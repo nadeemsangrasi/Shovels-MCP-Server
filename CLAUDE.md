@@ -43,6 +43,7 @@ backend/
 ## MCP Tools
 
 ### `shovels_permits`
+
 Search U.S. building permits by `geo_id` + date range, or fetch full records by ID.
 
 - **Search mode** (no `id`): compact rows with `resource` URI
@@ -50,6 +51,7 @@ Search U.S. building permits by `geo_id` + date range, or fetch full records by 
 - Filters: `tags`, `permit_status`, `property_type`, `min_job_value`
 
 ### `shovels_contractors`
+
 Search contractors active in a geography, or fetch full profiles, permits, employees, or metrics.
 
 - 5 actions via `action` param: `search`, `get`, `permits`, `employees`, `metrics`
@@ -57,12 +59,14 @@ Search contractors active in a geography, or fetch full profiles, permits, emplo
 - Filters: `contractor_classification`, `contractor_name` (min 3 chars)
 
 ### `shovels_geo`
+
 Resolve free-text addresses/places to `geo_id`. Tries all levels — address → city → county → jurisdiction → state — with auto fallback.
 
 - Optional `level` param to pin to one level
 - Auto-corrects state name typos
 
 ### `shovels_meta`
+
 List valid permit tags, or check current API credit usage.
 
 - 2 actions: `tags`, `usage`
@@ -71,10 +75,10 @@ List valid permit tags, or check current API credit usage.
 
 Search-mode responses return **compact rows** (id, type, status, key fields + a `resource` URI). The full record is one `get` call away. This keeps token usage low — agents only pay for what they read.
 
-| Mode | Payload | Token cost |
-|---|---|---|
-| Search (`no id`) | Compact + `resource` URI | Low |
-| Fetch (`id` supplied) | Full record | Full |
+| Mode                  | Payload                  | Token cost |
+| --------------------- | ------------------------ | ---------- |
+| Search (`no id`)      | Compact + `resource` URI | Low        |
+| Fetch (`id` supplied) | Full record              | Full       |
 
 ## API Endpoints
 
@@ -91,19 +95,19 @@ POST /mcp            # MCP Streamable HTTP endpoint
 
 All endpoints except `/health` require `X-API-Key` header — validated against the Shovels `/usage` endpoint. Each caller brings their own Shovels API key (not a single server key).
 
-| Scenario | Result |
-|---|---|
-| No `X-API-Key` | 401 — `"Missing X-API-Key header"` |
-| Invalid key | 401 — `"Invalid API key"` |
-| Valid key | Passes through, tools use caller's key |
-| `/health` | Always 200 (no key needed) |
+| Scenario       | Result                                 |
+| -------------- | -------------------------------------- |
+| No `X-API-Key` | 401 — `"Missing X-API-Key header"`     |
+| Invalid key    | 401 — `"Invalid API key"`              |
+| Valid key      | Passes through, tools use caller's key |
+| `/health`      | Always 200 (no key needed)             |
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `SHOVELS_API_KEY` | Yes | — | Shovels API key (used for middleware to validate client keys) |
-| `SHOVELS_API_BASE` | No | `https://api.shovels.ai/v2` | API base URL override |
+| Variable           | Required | Default                     | Description                                                   |
+| ------------------ | -------- | --------------------------- | ------------------------------------------------------------- |
+| `SHOVELS_API_KEY`  | Yes      | —                           | Shovels API key (used for middleware to validate client keys) |
+| `SHOVELS_API_BASE` | No       | `https://api.shovels.ai/v2` | API base URL override                                         |
 
 ## Development
 
@@ -116,7 +120,7 @@ pip install -r requirements.txt
 SHOVELS_API_KEY=sk_... uvicorn main:app --reload
 
 # Health check (no key required)
-curl http://localhost:8000/health
+curl https://shovels-mcp-server.onrender.com/mcp/health
 ```
 
 ## Known Constraints

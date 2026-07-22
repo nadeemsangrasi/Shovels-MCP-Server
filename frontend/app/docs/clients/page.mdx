@@ -10,7 +10,7 @@ All clients use the same MCP server configuration pattern:
 {
   "mcpServers": {
     "shovels": {
-      "url": "http://localhost:8000",
+      "url": "https://shovels-mcp-server.onrender.com/mcp",
       "headers": {
         "X-API-Key": "your-shovels-api-key"
       }
@@ -19,18 +19,18 @@ All clients use the same MCP server configuration pattern:
 }
 ```
 
-For local development, Shovels runs on `http://localhost:8000` by default.
+For local development, Shovels runs on `https://shovels-mcp-server.onrender.com/mcp` by default.
 
 ## Agent Setup Guides
 
-| Agent | Type | Guide |
-|-------|------|-------|
-| Claude Code | CLI | See [Claude Code setup](/docs/agents/claude-code) |
-| Cursor | Editor | Configure via `~/.cursor/mcp.json` using the pattern above |
-| VS Code | Editor | Configure via `~/.vscode/mcp.json` using the pattern above |
-| Windsurf | Editor | Configure via Windsurf MCP settings |
-| Codex | CLI | Configure via Codex MCP settings |
-| OpenCode | CLI | Configure via OpenCode MCP settings |
+| Agent       | Type   | Guide                                                      |
+| ----------- | ------ | ---------------------------------------------------------- |
+| Claude Code | CLI    | See [Claude Code setup](/docs/agents/claude-code)          |
+| Cursor      | Editor | Configure via `~/.cursor/mcp.json` using the pattern above |
+| VS Code     | Editor | Configure via `~/.vscode/mcp.json` using the pattern above |
+| Windsurf    | Editor | Configure via Windsurf MCP settings                        |
+| Codex       | CLI    | Configure via Codex MCP settings                           |
+| OpenCode    | CLI    | Configure via OpenCode MCP settings                        |
 
 ## Getting Your API Key
 

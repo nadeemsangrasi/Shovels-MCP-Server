@@ -17,7 +17,7 @@ Add Shovels to your VS Code MCP configuration (`~/.vscode/mcp.json`):
     "servers": {
       "shovels": {
         "type": "http",
-        "url": "http://localhost:8000",
+        "url": "https://shovels-mcp-server.onrender.com/mcp",
         "headers": {
           "X-API-Key": "YOUR_API_KEY"
         }
@@ -38,5 +38,5 @@ shovels_permits(geo_id="TX", permit_from="2026-01-01", permit_to="2026-06-30", l
 ## Troubleshooting
 
 - Restart VS Code after editing the config
-- Verify the Shovels server is running: `curl http://localhost:8000/health`
+- Verify the Shovels server is running: `curl https://shovels-mcp-server.onrender.com/mcp/health`
 - Check JSON syntax is valid

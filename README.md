@@ -48,7 +48,7 @@ Add to your MCP client config (e.g., `~/.cursor/mcp.json`):
 {
   "mcpServers": {
     "shovels": {
-      "url": "http://localhost:8000",
+      "url": "https://shovels-mcp-server.onrender.com/mcp",
       "headers": {
         "X-API-Key": "your-shovels-api-key"
       }
@@ -96,12 +96,12 @@ frontend/                    # Next.js Marketing + Docs Site
 
 ## MCP Tools
 
-| Tool | Purpose | Required Params |
-|------|---------|-----------------|
-| `shovels_geo` | Resolve places → geo_id | `query` |
-| `shovels_permits` | Search/fetch building permits | `geo_id` + `permit_from` + `permit_to` |
-| `shovels_contractors` | Search contractors, permits, employees, metrics | `geo_id` + dates (for search) |
-| `shovels_meta` | List permit tags or check credit usage | `action` (tags \| usage) |
+| Tool                  | Purpose                                         | Required Params                        |
+| --------------------- | ----------------------------------------------- | -------------------------------------- |
+| `shovels_geo`         | Resolve places → geo_id                         | `query`                                |
+| `shovels_permits`     | Search/fetch building permits                   | `geo_id` + `permit_from` + `permit_to` |
+| `shovels_contractors` | Search contractors, permits, employees, metrics | `geo_id` + dates (for search)          |
+| `shovels_meta`        | List permit tags or check credit usage          | `action` (tags \| usage)               |
 
 ### Calling Sequence
 
@@ -154,13 +154,13 @@ cd backend
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `SHOVELS_API_KEY` | Yes | — | Shovels API key (get one at app.shovels.ai) |
-| `SHOVELS_API_BASE` | No | `https://api.shovels.ai/v2` | API base URL override |
-| `MAX_RETRIES` | No | `3` | Network error retry count |
-| `RATE_LIMIT_RETRY_MAX` | No | `5` | Max retries on HTTP 429 |
-| `RATE_LIMIT_INITIAL_BACKOFF` | No | `1.0` | Initial 429 backoff in seconds |
+| Variable                     | Required | Default                     | Description                                 |
+| ---------------------------- | -------- | --------------------------- | ------------------------------------------- |
+| `SHOVELS_API_KEY`            | Yes      | —                           | Shovels API key (get one at app.shovels.ai) |
+| `SHOVELS_API_BASE`           | No       | `https://api.shovels.ai/v2` | API base URL override                       |
+| `MAX_RETRIES`                | No       | `3`                         | Network error retry count                   |
+| `RATE_LIMIT_RETRY_MAX`       | No       | `5`                         | Max retries on HTTP 429                     |
+| `RATE_LIMIT_INITIAL_BACKOFF` | No       | `1.0`                       | Initial 429 backoff in seconds              |
 
 ## Known Constraints
 

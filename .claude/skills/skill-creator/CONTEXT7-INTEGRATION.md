@@ -44,6 +44,7 @@ Before creating the skill, list what official docs you need:
 Example: Creating "fastapi-developer" skill
 
 Documentation needed:
+
 - FastAPI official guide
 - Pydantic models reference
 - SQLAlchemy async patterns
@@ -84,15 +85,17 @@ skill-name/references/
 
 Make documentation easily accessible:
 
-```markdown
+````markdown
 ## Prerequisites
 
 ### Official Documentation
+
 - FastAPI Guide: `references/official-docs/fastapi-guide.md`
 - Pydantic Models: `references/official-docs/pydantic-models.md`
 - SQLAlchemy Async: `references/official-docs/sqlalchemy-async.md`
 
 ### Quick References
+
 - Quick Start: `references/summaries/quick-start.md`
 - Common Patterns: `references/summaries/common-patterns.md`
 
@@ -103,11 +106,13 @@ Make documentation easily accessible:
 Follow the official FastAPI setup guide: `references/official-docs/fastapi-guide.md`
 
 Key steps from official documentation:
+
 1. Install FastAPI and Uvicorn
 2. Create main application file
 3. Define your first endpoint
 
 Example from official docs:
+
 ```python
 from fastapi import FastAPI
 
@@ -117,9 +122,11 @@ app = FastAPI()
 def read_root():
     return {"Hello": "World"}
 ```
+````
 
 See complete guide for advanced configuration.
-```
+
+````
 
 ## Complete Example: FastAPI Skill
 
@@ -129,7 +136,7 @@ See complete guide for advanced configuration.
 python3 scripts/create-skill-structure.py \
   --name "fastapi-developer" \
   --location personal
-```
+````
 
 ### 2. Fetch Official Documentation
 
@@ -138,6 +145,7 @@ User: "Use Context7 to fetch FastAPI official documentation"
 ```
 
 Claude fetches and saves to:
+
 - `references/official-docs/fastapi-guide.md`
 
 ```
@@ -145,6 +153,7 @@ User: "Use Context7 to fetch Pydantic models documentation"
 ```
 
 Saves to:
+
 - `references/official-docs/pydantic-models.md`
 
 ```
@@ -152,6 +161,7 @@ User: "Use Context7 to fetch SQLAlchemy async patterns"
 ```
 
 Saves to:
+
 - `references/official-docs/sqlalchemy-async.md`
 
 ### 3. Create Summaries
@@ -159,17 +169,21 @@ Saves to:
 Create quick reference guides based on fetched docs:
 
 **`references/summaries/quick-start.md`:**
-```markdown
+
+````markdown
 # FastAPI Quick Start
 
 Based on: `../official-docs/fastapi-guide.md`
 
 ## Installation
+
 ```bash
 pip install fastapi uvicorn[standard]
 ```
+````
 
 ## Minimal Application
+
 ```python
 from fastapi import FastAPI
 
@@ -181,14 +195,16 @@ async def root():
 ```
 
 ## Running
+
 ```bash
 uvicorn main:app --reload
 ```
 
-Visit: http://localhost:8000
+Visit: https://shovels-mcp-server.onrender.com/mcp
 
 For complete documentation, see the official guide.
-```
+
+````
 
 ### 4. Generate and Populate SKILL.md
 
@@ -199,11 +215,11 @@ python3 scripts/generate-skill-template.py \
   --allowed-tools "Bash, Read, Write" \
   --tags "fastapi, python, api, backend" \
   --output ~/.claude/skills/fastapi-developer/SKILL.md
-```
+````
 
 Then edit SKILL.md to reference the documentation:
 
-```markdown
+````markdown
 ## Instructions
 
 ### Step 1: Project Setup
@@ -220,6 +236,7 @@ Quick reference: `references/summaries/quick-start.md`
 Use Pydantic models: `references/official-docs/pydantic-models.md`
 
 Example from official documentation:
+
 ```python
 from pydantic import BaseModel, Field
 
@@ -228,6 +245,8 @@ class Item(BaseModel):
     price: float = Field(gt=0, description="Price must be positive")
     tax: float | None = None
 ```
+````
+
 ```
 
 ## Best Practices
@@ -237,13 +256,16 @@ class Item(BaseModel):
 Get documentation BEFORE writing instructions:
 
 ```
+
 Workflow:
+
 1. Create skill structure
 2. Fetch Context7 documentation ← Early
 3. Review fetched docs
 4. Write SKILL.md based on official patterns
 5. Create summaries for quick access
-```
+
+````
 
 ### 2. Keep Documentation Updated
 
@@ -257,7 +279,7 @@ Add version notes:
   - Fetched: 2026-01-01
   - Version: FastAPI 0.104.0
   - Note: Re-fetch for major version updates
-```
+````
 
 ### 3. Create Useful Summaries
 
@@ -338,11 +360,13 @@ Track documentation versions:
 ## Documentation Version History
 
 ### v2.0.0 (2026-03-01)
+
 - Updated FastAPI docs to v0.110.0
 - Added new async patterns
 - Refreshed Pydantic models for v2.0
 
 ### v1.0.0 (2026-01-01)
+
 - Initial documentation fetch
 - FastAPI v0.104.0
 - Pydantic v1.10.0
@@ -351,6 +375,7 @@ Track documentation versions:
 ## Benefits Summary
 
 **For Skill Creators:**
+
 - ✓ Saves research time
 - ✓ Ensures accuracy
 - ✓ Provides comprehensive references
@@ -358,6 +383,7 @@ Track documentation versions:
 - ✓ Makes skills maintainable
 
 **For Skill Users:**
+
 - ✓ Trustworthy information
 - ✓ Official patterns
 - ✓ Up-to-date practices

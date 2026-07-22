@@ -62,7 +62,7 @@ INFO:     Uvicorn running on http://127.0.0.1:8000
 ### Health Check
 
 ```bash
-curl http://localhost:8000/health
+curl https://shovels-mcp-server.onrender.com/mcp/health
 ```
 
 Expected response (healthy):
@@ -78,7 +78,7 @@ Expected response (healthy):
 ### List MCP Tools
 
 ```bash
-curl -X POST http://localhost:8000/mcp \
+curl -X POST https://shovels-mcp-server.onrender.com/mcp/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc": "2.0", "id": "1", "method": "tools/list", "params": {}}'
@@ -89,7 +89,7 @@ Expected: Returns `shovels_permits`, `shovels_contractors`, `shovels_decisions`,
 ### Test Geo Resolution
 
 ```bash
-curl -X POST http://localhost:8000/mcp \
+curl -X POST https://shovels-mcp-server.onrender.com/mcp/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{
@@ -117,7 +117,7 @@ Add this to your MCP client configuration:
 {
   "mcpServers": {
     "shovels": {
-      "url": "http://localhost:8000/mcp",
+      "url": "https://shovels-mcp-server.onrender.com/mcp/mcp",
       "headers": {
         "Content-Type": "application/json",
         "Accept": "application/json, text/event-stream"
@@ -136,7 +136,7 @@ Add this to your MCP client configuration:
 npx skillclaw ...
 
 # Or configure directly
-claude mcp add shovels --url http://localhost:8000/mcp
+claude mcp add shovels --url https://shovels-mcp-server.onrender.com/mcp/mcp
 ```
 
 ---
@@ -156,13 +156,13 @@ claude mcp add shovels --url http://localhost:8000/mcp
 
 ## Troubleshooting
 
-| Problem | Likely Cause | Fix |
-|---|---|---|
-| `status: "degraded"` on health | No API key set | Add `SHOVELS_API_KEY` to `.env` |
-| `401` from Shovels API | Invalid API key | Check your key at app.shovels.ai |
-| `ModuleNotFoundError` | Stale `__init__.py` | Check `src/utils/__init__.py` is empty |
-| `fastmcp` install fails | Python < 3.9 | Use Python 3.12+ |
-| Port 8000 in use | Another service | Use `--port 8001` flag |
+| Problem                        | Likely Cause        | Fix                                    |
+| ------------------------------ | ------------------- | -------------------------------------- |
+| `status: "degraded"` on health | No API key set      | Add `SHOVELS_API_KEY` to `.env`        |
+| `401` from Shovels API         | Invalid API key     | Check your key at app.shovels.ai       |
+| `ModuleNotFoundError`          | Stale `__init__.py` | Check `src/utils/__init__.py` is empty |
+| `fastmcp` install fails        | Python < 3.9        | Use Python 3.12+                       |
+| Port 8000 in use               | Another service     | Use `--port 8001` flag                 |
 
 ### Port conflict
 

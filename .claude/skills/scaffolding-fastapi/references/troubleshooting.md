@@ -9,6 +9,7 @@
 **Cause:** Python can't find the `app` module
 
 **Solutions:**
+
 ```bash
 # Option 1: Run from project root
 cd /path/to/my-api
@@ -27,6 +28,7 @@ echo 'export PYTHONPATH="${PYTHONPATH}:$(pwd)"' >> ~/.bashrc
 **Cause:** Two modules import each other
 
 **Solution:** Use forward references and import inside functions
+
 ```python
 # Instead of
 from app.models.user import User
@@ -47,6 +49,7 @@ def get_user_posts(user_id: int):
 **Cause:** Database not running or wrong connection string
 
 **Solutions:**
+
 ```bash
 # Check PostgreSQL is running
 sudo systemctl status postgresql
@@ -66,6 +69,7 @@ psql -U user -h localhost -d dbname
 **Cause:** Tables not created
 
 **Solutions:**
+
 ```bash
 # Option 1: Run initialization script
 python scripts/init_db.py
@@ -83,6 +87,7 @@ Base.metadata.create_all(bind=engine)
 **Cause:** Trying to insert duplicate value in unique column
 
 **Solution:** Check for existing records first
+
 ```python
 existing_user = db.query(User).filter(User.email == email).first()
 if existing_user:
@@ -96,6 +101,7 @@ if existing_user:
 **Cause:** Request data doesn't match Pydantic schema
 
 **Solution:** Check request body matches schema exactly
+
 ```python
 # Schema expects
 class UserCreate(BaseModel):
@@ -116,6 +122,7 @@ class UserCreate(BaseModel):
 **Cause:** Invalid email format
 
 **Solutions:**
+
 ```bash
 # Install email-validator
 pip install email-validator
@@ -134,12 +141,14 @@ class User(BaseModel):
 **Causes & Solutions:**
 
 **1. Token expired:**
+
 ```python
 # Increase token expiration in .env
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
 **2. Wrong SECRET_KEY:**
+
 ```python
 # Ensure SECRET_KEY matches between token creation and verification
 # Check .env file
@@ -147,6 +156,7 @@ SECRET_KEY="same-key-everywhere"
 ```
 
 **3. Token format incorrect:**
+
 ```bash
 # Correct format in Authorization header
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -157,6 +167,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Cause:** SECRET_KEY mismatch or token tampered
 
 **Solution:**
+
 ```python
 # Regenerate token with correct SECRET_KEY
 import secrets
@@ -173,6 +184,7 @@ print(f"SECRET_KEY={secret_key}")
 **Cause:** Pydantic version mismatch
 
 **Solution:**
+
 ```bash
 # Upgrade pydantic and pydantic-settings
 pip install --upgrade pydantic pydantic-settings
@@ -181,11 +193,12 @@ pip install --upgrade pydantic pydantic-settings
 pip install pydantic==2.6.0 pydantic-settings==2.6.0
 ```
 
-#### Error: TypeError: Settings.__init__() got an unexpected keyword argument 'env_file'
+#### Error: TypeError: Settings.**init**() got an unexpected keyword argument 'env_file'
 
 **Cause:** Using old Pydantic BaseSettings API
 
 **Solution:** Update to new API
+
 ```python
 # Old (Pydantic v1)
 class Settings(BaseSettings):
@@ -201,9 +214,10 @@ class Settings(BaseSettings):
 
 ### CORS Errors
 
-#### Error: Access to fetch at 'http://localhost:8000/api' from origin 'http://localhost:3000' has been blocked by CORS policy
+#### Error: Access to fetch at 'https://shovels-mcp-server.onrender.com/mcp/api' from origin 'http://localhost:3000' has been blocked by CORS policy
 
 **Solution:** Add CORS middleware
+
 ```python
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -223,6 +237,7 @@ app.add_middleware(
 **Cause:** Uploaded file exceeds server limit
 
 **Solution:** Increase Nginx/proxy limit
+
 ```nginx
 # nginx.conf
 client_max_body_size 50M;
@@ -245,6 +260,7 @@ async def upload_file(file: UploadFile = File(...)):
 **Cause:** Loading relationships in loops
 
 **Solution:** Use eager loading
+
 ```python
 # Bad: N+1 queries
 posts = db.query(Post).all()
@@ -264,6 +280,7 @@ for post in posts:
 **Cause:** Loading too many records at once
 
 **Solution:** Use pagination
+
 ```python
 @app.get("/users")
 async def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -278,6 +295,7 @@ async def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_
 **Cause:** Alembic version mismatch
 
 **Solutions:**
+
 ```bash
 # Check current version
 alembic current
@@ -298,6 +316,7 @@ alembic upgrade head
 **Cause:** Migration file missing or corrupted
 
 **Solution:**
+
 ```bash
 # Check alembic/versions/ directory
 ls alembic/versions/
@@ -383,6 +402,7 @@ if __name__ == "__main__":
 **Problem:** Hot reload not working
 
 **Solution:**
+
 ```bash
 # Ensure --reload flag is used
 uvicorn app.main:app --reload
@@ -397,6 +417,7 @@ uvicorn app.main:app --reload --reload-dir app
 **Problem:** Application crashes under load
 
 **Solutions:**
+
 ```bash
 # Use multiple workers
 uvicorn app.main:app --workers 4
@@ -408,6 +429,7 @@ gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker -
 **Problem:** Database connection pool exhausted
 
 **Solution:**
+
 ```python
 # Increase pool size
 engine = create_engine(
@@ -432,7 +454,7 @@ pip list
 python -c "import sys; print('\n'.join(sys.path))"
 
 # Test endpoint directly
-curl -X GET "http://localhost:8000/docs"
+curl -X GET "https://shovels-mcp-server.onrender.com/mcp/docs"
 
 # Check environment variables
 python -c "from app.core.config import settings; print(settings.DATABASE_URL)"

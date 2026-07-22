@@ -17,12 +17,12 @@ A 1:1 mirror of the Shovels CLI's business logic, delivered over MCP instead of 
 
 ## Tools
 
-| Tool | What it does | Modes |
-|---|---|---|
-| `shovels_permits` | Search permits by geo + date range, or fetch full records by ID | search (compact), get-by-ID (full) |
+| Tool                  | What it does                                                       | Modes                                               |
+| --------------------- | ------------------------------------------------------------------ | --------------------------------------------------- |
+| `shovels_permits`     | Search permits by geo + date range, or fetch full records by ID    | search (compact), get-by-ID (full)                  |
 | `shovels_contractors` | Search contractors, or fetch profiles, permits, employees, metrics | 5 actions: search, get, permits, employees, metrics |
-| `shovels_geo` | Resolve free-text place names to `geo_id` values | Level-pin or auto-fallback |
-| `shovels_meta` | List valid permit tags, or check API credit usage | tags, usage |
+| `shovels_geo`         | Resolve free-text place names to `geo_id` values                   | Level-pin or auto-fallback                          |
+| `shovels_meta`        | List valid permit tags, or check API credit usage                  | tags, usage                                         |
 
 ### Progressive Disclosure
 
@@ -40,26 +40,26 @@ cd backend
 uvicorn main:app --reload
 
 # 4. Health check (no key required)
-curl http://localhost:8000/health
+curl https://shovels-mcp-server.onrender.com/mcp/health
 ```
 
 ## Auth
 
 All endpoints except `/health` require `X-API-Key` header. Keys are validated against the Shovels `/usage` endpoint. Each client brings their own key.
 
-| Scenario | Result |
-|---|---|
-| No `X-API-Key` | 401 |
-| Invalid key | 401 |
-| Valid key | Passes through |
-| `/health` | Always 200 |
+| Scenario       | Result         |
+| -------------- | -------------- |
+| No `X-API-Key` | 401            |
+| Invalid key    | 401            |
+| Valid key      | Passes through |
+| `/health`      | Always 200     |
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `SHOVELS_API_KEY` | Yes | Your Shovels API key |
-| `SHOVELS_API_BASE` | No | API base URL (default: `https://api.shovels.ai/v2`) |
+| Variable           | Required | Description                                         |
+| ------------------ | -------- | --------------------------------------------------- |
+| `SHOVELS_API_KEY`  | Yes      | Your Shovels API key                                |
+| `SHOVELS_API_BASE` | No       | API base URL (default: `https://api.shovels.ai/v2`) |
 
 ## Architecture
 

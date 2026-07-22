@@ -9,12 +9,14 @@ This skill guides you through creating well-structured FastAPI projects with SQL
 ## Features
 
 ### ✅ Project Scaffolding
+
 - Standard directory structure
 - Configuration management with pydantic-settings
 - Environment variable handling
 - Virtual environment setup
 
 ### ✅ Database Integration
+
 - SQLAlchemy ORM setup
 - Database models and relationships
 - Migration management with Alembic
@@ -22,6 +24,7 @@ This skill guides you through creating well-structured FastAPI projects with SQL
 - PostgreSQL, MySQL, SQLite support
 
 ### ✅ API Development
+
 - Router organization
 - CRUD operations
 - Request/response validation with Pydantic
@@ -29,6 +32,7 @@ This skill guides you through creating well-structured FastAPI projects with SQL
 - Error handling
 
 ### ✅ Authentication
+
 - JWT token-based authentication
 - Password hashing with bcrypt
 - OAuth2 integration
@@ -36,6 +40,7 @@ This skill guides you through creating well-structured FastAPI projects with SQL
 - Protected routes
 
 ### ✅ Production Ready
+
 - CORS middleware
 - Background tasks
 - File uploads
@@ -67,6 +72,7 @@ cp -r scaffolding-fastapi ~/.claude/skills/
 ### Activation
 
 The skill activates with trigger keywords:
+
 - "fastapi"
 - "scaffold fastapi"
 - "rest api"
@@ -78,6 +84,7 @@ The skill activates with trigger keywords:
 ### Quick Start
 
 **Create a new FastAPI project:**
+
 ```bash
 # 1. Create project structure
 mkdir -p my-api/{app/{api,core,db,models,schemas},tests}
@@ -104,27 +111,31 @@ EOF
 # 5. Run the application
 uvicorn app.main:app --reload
 
-# 6. Visit http://localhost:8000/docs for interactive API docs
+# 6. Visit https://shovels-mcp-server.onrender.com/mcp/docs for interactive API docs
 ```
 
 ### Example Prompts
 
 **Project Setup:**
+
 - "Create a FastAPI project with PostgreSQL"
 - "Set up FastAPI with SQLAlchemy and Pydantic"
 - "Initialize FastAPI project structure"
 
 **Database:**
+
 - "Add database models for users and posts"
 - "Set up Alembic migrations"
 - "Create SQLAlchemy relationships"
 
 **Authentication:**
+
 - "Implement JWT authentication"
 - "Add OAuth2 login flow"
 - "Create protected routes"
 
 **API Development:**
+
 - "Create CRUD endpoints for users"
 - "Add file upload endpoint"
 - "Implement pagination"
@@ -192,6 +203,7 @@ settings = Settings()
 ### Database Models vs Schemas
 
 **Models** (SQLAlchemy) - Database tables:
+
 ```python
 class User(Base):
     __tablename__ = "users"
@@ -200,6 +212,7 @@ class User(Base):
 ```
 
 **Schemas** (Pydantic) - Request/response validation:
+
 ```python
 class UserCreate(BaseModel):
     email: EmailStr
@@ -226,37 +239,46 @@ async def list_users(db: Session = Depends(get_db)):
 ## Common Use Cases
 
 ### REST API with CRUD Operations
+
 Create full CRUD endpoints for resources with database persistence
 
 ### Authentication System
+
 JWT-based authentication with user registration and login
 
 ### Data Validation API
+
 Use Pydantic for request/response validation and type safety
 
 ### File Upload Service
+
 Handle file uploads with size limits and type validation
 
 ### Background Task Processing
+
 Run tasks asynchronously without blocking requests
 
 ### Microservice Backend
+
 Build scalable backend services with async support
 
 ## Integration with Other Skills
 
 ### With better-auth-nextjs
+
 - FastAPI as backend API
 - Next.js as frontend
 - JWT tokens for authentication
 - CORS configuration for cross-origin requests
 
 ### With nextjs-dev-tool
+
 - Test API endpoints during development
 - Verify CORS settings
 - Debug request/response flow
 
 ### With modern-ui-ux-theming
+
 - Design consistent API response formats
 - Implement consistent error handling
 - Design API documentation
@@ -277,21 +299,25 @@ See `references/integration-guides.md` for detailed workflows (when created).
 ## FastAPI Features
 
 ### Automatic API Documentation
+
 - **/docs** - Interactive Swagger UI
 - **/redoc** - Alternative ReDoc documentation
 - **/openapi.json** - OpenAPI schema
 
 ### Data Validation
+
 - Automatic request validation with Pydantic
 - Type hints for parameters
 - Response model validation
 
 ### Performance
+
 - Async/await support
 - High performance (comparable to NodeJS and Go)
 - Automatic JSON serialization
 
 ### Developer Experience
+
 - Auto-completion everywhere
 - Minimal code duplication
 - Easy testing
@@ -299,6 +325,7 @@ See `references/integration-guides.md` for detailed workflows (when created).
 ## Requirements
 
 **Minimum:**
+
 - Python 3.8+
 - FastAPI 0.100.0+
 - Uvicorn 0.20.0+
@@ -306,6 +333,7 @@ See `references/integration-guides.md` for detailed workflows (when created).
 - Pydantic 2.0.0+
 
 **Recommended:**
+
 - PostgreSQL 12+ or MySQL 8+
 - Alembic (for migrations)
 - python-jose (for JWT)
@@ -347,12 +375,14 @@ mypy app/
 ## Resources
 
 **Official Documentation:**
+
 - [FastAPI Official Docs](https://fastapi.tiangolo.com)
 - [FastAPI GitHub](https://github.com/tiangolo/fastapi)
 - [Pydantic Documentation](https://docs.pydantic.dev)
 - [SQLAlchemy Documentation](https://docs.sqlalchemy.org)
 
 **Local Documentation:**
+
 - Complete examples: `references/examples.md`
 - Project structure: `references/project-structure.md`
 - Installation guide: `references/installation.md`
@@ -362,6 +392,7 @@ mypy app/
 - Troubleshooting: `references/troubleshooting.md`
 
 **External Resources:**
+
 - [FastAPI Tutorial](https://fastapi.tiangolo.com/tutorial/)
 - [Real World FastAPI](https://github.com/nsidnev/fastapi-realworld-example-app)
 - [Awesome FastAPI](https://github.com/mjhea0/awesome-fastapi)
@@ -369,6 +400,7 @@ mypy app/
 ## Version History
 
 **v1.0.0 (2026-01-01)**
+
 - Initial release
 - Project scaffolding with standard structure
 - SQLAlchemy database integration
@@ -386,6 +418,7 @@ mypy app/
 ### Common Issues
 
 **Import Errors:**
+
 ```bash
 # Set PYTHONPATH or run with python -m
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
@@ -393,6 +426,7 @@ python -m uvicorn app.main:app --reload
 ```
 
 **Database Connection Failed:**
+
 ```bash
 # Check DATABASE_URL in .env
 # Verify database is running
@@ -400,6 +434,7 @@ sudo systemctl status postgresql
 ```
 
 **Tables Not Found:**
+
 ```bash
 # Create tables
 python scripts/init_db.py
@@ -408,6 +443,7 @@ alembic upgrade head
 ```
 
 **422 Validation Error:**
+
 - Check request body matches Pydantic schema exactly
 - Ensure all required fields are included
 
@@ -423,6 +459,7 @@ See `references/troubleshooting.md` for complete guide.
 ## Contributing
 
 Improvements welcome! Please ensure:
+
 - SKILL.md stays under 500 lines
 - Examples are complete and tested
 - Documentation follows progressive disclosure
@@ -431,6 +468,7 @@ Improvements welcome! Please ensure:
 ## License
 
 This skill integrates with:
+
 - FastAPI (MIT License)
 - SQLAlchemy (MIT License)
 - Pydantic (MIT License)

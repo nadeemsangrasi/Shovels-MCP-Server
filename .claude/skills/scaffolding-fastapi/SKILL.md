@@ -4,7 +4,19 @@ description: Scaffold production-ready FastAPI applications with proper project 
 version: 1.0.0
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob
 author: Claude Code
-tags: [fastapi, python, backend, api, rest, scaffolding, pydantic, sqlalchemy, async, database]
+tags:
+  [
+    fastapi,
+    python,
+    backend,
+    api,
+    rest,
+    scaffolding,
+    pydantic,
+    sqlalchemy,
+    async,
+    database,
+  ]
 ---
 
 # FastAPI Scaffolding
@@ -18,6 +30,7 @@ FastAPI is a modern, fast Python web framework for building APIs. This skill hel
 ## When to Use This Skill
 
 **Activate when:**
+
 - Creating new FastAPI projects
 - Setting up REST API structure
 - Implementing CRUD endpoints
@@ -29,6 +42,7 @@ FastAPI is a modern, fast Python web framework for building APIs. This skill hel
 **Trigger keywords:** "fastapi", "scaffold fastapi", "rest api", "fastapi project", "api endpoints", "fastapi database", "pydantic models"
 
 **NOT for:**
+
 - Non-Python backends
 - Simple scripts
 - Django/Flask projects
@@ -36,11 +50,13 @@ FastAPI is a modern, fast Python web framework for building APIs. This skill hel
 ## Prerequisites
 
 **Required:**
+
 - Python 3.8+
 - pip or poetry
 - Virtual environment knowledge
 
 **Recommended:**
+
 - Basic async/await understanding
 - SQL database knowledge
 - REST API concepts
@@ -52,12 +68,14 @@ FastAPI is a modern, fast Python web framework for building APIs. This skill hel
 #### Step 1: Create Project Structure
 
 **Quick:**
+
 ```bash
 mkdir -p my-api/{app/{api,core,db,models,schemas},tests}
 cd my-api
 ```
 
 **Structure:**
+
 ```
 my-api/
 ├── app/
@@ -78,11 +96,13 @@ my-api/
 #### Step 2: Install FastAPI
 
 **Quick:**
+
 ```bash
 pip install "fastapi[standard]" uvicorn sqlalchemy pydantic-settings
 ```
 
 **Or with poetry:**
+
 ```bash
 poetry add fastapi uvicorn sqlalchemy pydantic-settings
 ```
@@ -92,6 +112,7 @@ poetry add fastapi uvicorn sqlalchemy pydantic-settings
 #### Step 3: Create Main Application
 
 **Create `app/main.py`:**
+
 ```python
 from fastapi import FastAPI
 
@@ -113,6 +134,7 @@ async def root():
 #### Step 4: Setup Configuration
 
 **Create `app/core/config.py`:**
+
 ```python
 from pydantic_settings import BaseSettings
 
@@ -132,6 +154,7 @@ settings = Settings()
 #### Step 5: Create Environment File
 
 **`.env`:**
+
 ```env
 DATABASE_URL=postgresql://user:pass@localhost/dbname
 SECRET_KEY=your-secret-key-min-32-chars
@@ -144,6 +167,7 @@ SECRET_KEY=your-secret-key-min-32-chars
 #### Step 6: Configure Database
 
 **Create `app/db/base.py`:**
+
 ```python
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -159,6 +183,7 @@ Base = declarative_base()
 #### Step 7: Create Database Dependency
 
 **Create `app/db/session.py`:**
+
 ```python
 from typing import Generator
 from app.db.base import SessionLocal
@@ -178,6 +203,7 @@ def get_db() -> Generator:
 #### Step 8: Create Database Models
 
 **Create `app/models/user.py`:**
+
 ```python
 from sqlalchemy import Column, Integer, String
 from app.db.base import Base
@@ -195,6 +221,7 @@ class User(Base):
 #### Step 9: Create Pydantic Schemas
 
 **Create `app/schemas/user.py`:**
+
 ```python
 from pydantic import BaseModel, EmailStr
 
@@ -218,6 +245,7 @@ class User(UserBase):
 #### Step 10: Create Router
 
 **Create `app/api/users.py`:**
+
 ```python
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -236,6 +264,7 @@ async def list_users(db: Session = Depends(get_db)):
 #### Step 11: Register Router
 
 **Update `app/main.py`:**
+
 ```python
 from app.api import users
 
@@ -249,6 +278,7 @@ app.include_router(users.router)
 #### Step 12: Create Dependencies
 
 **Common pattern:**
+
 ```python
 from fastapi import Depends, HTTPException
 from typing import Annotated
@@ -271,6 +301,7 @@ async def read_me(user: UserDep):
 #### Step 13: Add Middleware
 
 **CORS middleware:**
+
 ```python
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -290,37 +321,43 @@ app.add_middleware(
 #### Step 14: Run Application
 
 **Quick:**
+
 ```bash
 uvicorn app.main:app --reload
 ```
 
-**Access docs:** `http://localhost:8000/docs`
+**Access docs:** `https://shovels-mcp-server.onrender.com/mcp/docs`
 
 **See:** `references/running-guide.md`
 
 ## Common Patterns
 
 ### Pattern 1: CRUD Operations
+
 **Quick:** Model + Schema + Router with get/post/put/delete
 
 **See:** `references/examples.md#crud`
 
 ### Pattern 2: Authentication
+
 **Quick:** JWT tokens + password hashing + protected routes
 
 **See:** `references/authentication.md`
 
 ### Pattern 3: Database Relationships
+
 **Quick:** SQLAlchemy relationships + Pydantic nested schemas
 
 **See:** `references/database-setup.md#relationships`
 
 ### Pattern 4: Background Tasks
+
 **Quick:** Use BackgroundTasks for async operations
 
 **See:** `references/examples.md#background-tasks`
 
 ### Pattern 5: File Uploads
+
 **Quick:** UploadFile + save to disk/cloud
 
 **See:** `references/examples.md#file-uploads`
@@ -365,13 +402,13 @@ my-api/
 
 ## Error Handling
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| Import errors | Wrong Python path | Set PYTHONPATH or use `python -m` |
-| Database connection failed | Wrong DATABASE_URL | Check .env configuration |
-| Pydantic validation errors | Schema mismatch | Verify model/schema alignment |
-| 422 Unprocessable Entity | Invalid request data | Check Pydantic schema |
-| Dependency injection fails | Wrong type hints | Use Annotated or Depends correctly |
+| Error                      | Cause                | Solution                           |
+| -------------------------- | -------------------- | ---------------------------------- |
+| Import errors              | Wrong Python path    | Set PYTHONPATH or use `python -m`  |
+| Database connection failed | Wrong DATABASE_URL   | Check .env configuration           |
+| Pydantic validation errors | Schema mismatch      | Verify model/schema alignment      |
+| 422 Unprocessable Entity   | Invalid request data | Check Pydantic schema              |
+| Dependency injection fails | Wrong type hints     | Use Annotated or Depends correctly |
 
 **See:** `references/troubleshooting.md`
 
@@ -393,7 +430,7 @@ my-api/
 ## Validation Checklist
 
 **Project Setup:** [ ] venv, dependencies, .env, .gitignore
-**Structure:** [ ] Folders, __init__.py, imports
+**Structure:** [ ] Folders, **init**.py, imports
 **Database:** [ ] Models, schemas, DI, migrations
 **API:** [ ] Routers, docs, response models, errors
 **Testing:** [ ] /docs accessible, endpoints work, validation, DB ops
@@ -407,6 +444,7 @@ my-api/
 ## References
 
 **Local Documentation:**
+
 - Project structure: `references/project-structure.md`
 - Installation: `references/installation.md`
 - Configuration: `references/configuration.md`
@@ -421,6 +459,7 @@ my-api/
 - Troubleshooting: `references/troubleshooting.md`
 
 **External Resources:**
+
 - [FastAPI Official Documentation](https://fastapi.tiangolo.com)
 - [FastAPI GitHub](https://github.com/fastapi/fastapi)
 - [Pydantic Documentation](https://docs.pydantic.dev)

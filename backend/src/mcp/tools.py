@@ -74,36 +74,151 @@ def _strip_nulls(data) -> dict:
     return data
 
 
-def _compact_items(items: list) -> list:
-    """Return a compact version of each item — strips nulls."""
+def _compact_permit(item: dict) -> dict:
+    """
+    Reduce a full permit record to the compact search-mode shape
+    defined in the MVP spec — keeps token cost low until the agent
+    fetches the full record by ID.
+    Handles both nested ``address`` dict and flat top-level fields.
+    """
+    address = item.get("address", {})
+    if isinstance(address, dict):
+        city = address.get("city") or item.get("city")
+        state = address.get("state") or item.get("state")
+    else:
+        city = item.get("city")
+        state = item.get("state")
+    return _strip_nulls({
+        "id": item.get("id"),
+        "number": item.get("number"),
+        "type": item.get("type"),
+        "status": item.get("status"),
+        "job_value_cents": item.get("job_value_cents") or item.get("job_value"),
+        "city": city,
+        "state": state,
+        "contractor_id": item.get("contractor_id"),
+        "resource": f"shovels://permits/{item.get('id')}",
+    })
+
+
+def _compact_contractor(item: dict) -> dict:
+    """
+    Reduce a full contractor record to the compact search-mode shape.
+    Handles address in both nested ``address`` dict and flat top-level fields.
+    """
+    address = item.get("address", {})
+    if isinstance(address, dict) and address.get("city"):
+        city = address.get("city")
+        state = address.get("state")
+    else:
+        city = item.get("city")
+        state = item.get("state")
+
+    # classification can be a string or a list of one string
+    classification = item.get("classification_derived")
+    if isinstance(classification, list):
+        classification = classification[0] if classification else item.get("classification")
+    elif not classification:
+        classification = item.get("classification")
+
+    return _strip_nulls({
+        "id": item.get("id"),
+        "name": item.get("name") or item.get("business_name"),
+        "classification": classification,
+        "city": city,
+        "state": state,
+        "license_number": item.get("license_number") or item.get("license"),
+        "resource": f"shovels://contractors/{item.get('id')}",
+    })
+
+
+def _compact_decision(item: dict) -> dict:
+    """
+    Reduce a full decision record to the compact search-mode shape.
+    """
+    return _strip_nulls({
+        "id": item.get("id"),
+        "category": item.get("category"),
+        "status": item.get("status"),
+        "date": item.get("decision_date") or item.get("date"),
+        "description": item.get("description"),
+        "resource": f"shovels://decisions/{item.get('id')}",
+    })
+
+
+def _compact_tool_items(items: list, tool: str) -> list:
+    """
+    Compact search results by tool type to reduce token payload.
+    Each item gets a ``resource`` URI for full-record retrieval.
+    """
+    if tool == "permits":
+        return [_compact_permit(item) for item in items]
+    if tool == "contractors":
+        return [_compact_contractor(item) for item in items]
+    if tool == "decisions":
+        return [_compact_decision(item) for item in items]
+    # Default: just strip nulls
     return [_strip_nulls(item) for item in items]
 
 
-def _build_envelope(result: dict) -> dict:
+def _build_search_envelope(result: dict, tool: str) -> dict:
     """
-    Convert a raw client result into the ``data``/``meta`` envelope.
-
-    Handles both search results (list of items) and get-by-ID
-    results (single dict).
+    Convert a search result into the ``{{data, meta}}`` envelope
+    with compact items per the progressive-disclosure design.
     """
     items = result.get("items", [])
     credits_used = int(result.get("X-Credits-Request", 0))
     credits_remaining = int(result.get("X-Credits-Remaining", 0))
 
-    if isinstance(items, dict):
-        # Single-item result from get-by-ID
-        return build_data_meta(
-            _strip_nulls(items),
-            credits_used=credits_used,
-            credits_remaining=credits_remaining,
-        )
-
     return build_data_meta(
-        _compact_items(items),
+        _compact_tool_items(items, tool),
         credits_used=credits_used,
         credits_remaining=credits_remaining,
         count=len(items),
         has_more=result.get("next_cursor") is not None,
+    )
+
+
+def _build_single_envelope(result: dict) -> dict:
+    """
+    Convert a get-by-ID result into the ``{{data, meta}}`` envelope
+    with the full record (no compaction).
+
+    Handles two shapes from the client:
+    - Flat dict (single-ID get): ``{{"id": "p1", "type": ..., "X-Credits-*": ...}}``
+    - List-wrapped (multi-ID get): ``{{"items": [{{"id": "p1"}}], ...}}``
+    """
+    credits_used = int(result.get("X-Credits-Request", 0))
+    credits_remaining = int(result.get("X-Credits-Remaining", 0))
+
+    # Multi-ID get wraps in "items" list
+    if "items" in result:
+        items = result["items"]
+        if isinstance(items, dict):
+            # Single item wrapped in a dict (some endpoints do this)
+            data = _strip_nulls(items)
+        elif isinstance(items, list) and len(items) == 1:
+            data = _strip_nulls(items[0])
+        elif isinstance(items, list) and len(items) > 1:
+            # Return as list for multi-ID
+            return build_data_meta(
+                _strip_nulls(items),
+                credits_used=credits_used,
+                credits_remaining=credits_remaining,
+                count=len(items),
+                has_more=False,
+            )
+        else:
+            data = _strip_nulls(items) if items else {}
+    else:
+        # Flat dict — single-ID get returns credits merged in
+        data = _strip_nulls({k: v for k, v in result.items()
+                            if not k.startswith("X-")})
+
+    return build_data_meta(
+        data,
+        credits_used=credits_used,
+        credits_remaining=credits_remaining,
     )
 
 
@@ -138,6 +253,7 @@ async def shovels_permits(
     permit_from: Optional[str] = None,
     permit_to: Optional[str] = None,
     tags: Optional[list[str]] = None,
+    permit_status: Optional[list[str]] = None,
     property_type: Optional[str] = None,
     min_job_value: Optional[int] = None,
     include_count: bool = False,
@@ -160,6 +276,8 @@ async def shovels_permits(
     🏠 property_type values: commercial, residential, industrial, office,
     vacant_land, exempt, mixed_use.
 
+    🔍 permit_status: final, in_review, active, inactive.
+
     Pagination: ``limit`` can be a number 1–100000, or ``"all"``
     (capped at ``max_records``, default 10000).  Use ``include_count``
     to request a total count.
@@ -170,6 +288,7 @@ async def shovels_permits(
         permit_from: Required for search. Start date (YYYY-MM-DD).
         permit_to: Required for search. End date (YYYY-MM-DD).
         tags: Filter by work-type tags (electrical, roofing, etc.).
+        permit_status: Filter by status (final, in_review, active, inactive).
         property_type: Filter by property type.
         min_job_value: Minimum job value in cents.
         include_count: Request total count in the response.
@@ -178,7 +297,8 @@ async def shovels_permits(
         no_retry: Disable automatic 429 retry.
 
     Returns:
-        ``{data, meta}`` envelope with permit records.
+        ``{data, meta}`` envelope with compact permit records (search)
+        or full permit records (fetch by ID).
     """
     client = get_client()
 
@@ -186,7 +306,7 @@ async def shovels_permits(
     if id:
         try:
             result = await client.get_permits(id)
-            return _build_envelope(result)
+            return _build_single_envelope(result)
         except ShovelsClientError as e:
             return format_error(str(e))
 
@@ -207,6 +327,8 @@ async def shovels_permits(
         }
         if tags:
             search_params["permit_tags"] = tags
+        if permit_status:
+            search_params["permit_status"] = permit_status
         if property_type:
             search_params["property_type"] = property_type
         if min_job_value is not None:
@@ -222,7 +344,7 @@ async def shovels_permits(
             limit=limit_param, max_records=max_rec,
             no_retry=no_retry,
         )
-        return _build_envelope(result)
+        return _build_search_envelope(result, "permits")
     except ShovelsClientError as e:
         return format_error(str(e))
 
@@ -237,6 +359,7 @@ async def shovels_contractors(
     permit_from: Optional[str] = None,
     permit_to: Optional[str] = None,
     contractor_classification: Optional[str] = None,
+    contractor_name: Optional[str] = None,
     metric_from: Optional[str] = None,
     metric_to: Optional[str] = None,
     property_type: Optional[str] = None,
@@ -274,6 +397,7 @@ async def shovels_contractors(
         permit_from: Required for search and permits (YYYY-MM-DD).
         permit_to: Required for search and permits (YYYY-MM-DD).
         contractor_classification: Filter by trade classification.
+        contractor_name: Filter by name (min 3 characters — trigram index).
         metric_from: Required for metrics (YYYY-MM-DD).
         metric_to: Required for metrics (YYYY-MM-DD).
         property_type: Required for metrics.
@@ -307,6 +431,8 @@ async def shovels_contractors(
             }
             if contractor_classification:
                 search_params["contractor_classification_derived"] = [contractor_classification]
+            if contractor_name:
+                search_params["contractor_name"] = contractor_name
             if include_count:
                 search_params["include_count"] = True
 
@@ -315,13 +441,13 @@ async def shovels_contractors(
                 limit=limit_param, max_records=max_rec,
                 no_retry=no_retry,
             )
-            return _build_envelope(result)
+            return _build_search_envelope(result, "contractors")
 
         elif action == "get":
             if not id:
                 return format_error("id is required for action='get'.")
             result = await client.get_contractors(id)
-            return _build_envelope(result)
+            return _build_single_envelope(result)
 
         elif action == "permits":
             if not id:
@@ -333,13 +459,13 @@ async def shovels_contractors(
                 limit=limit_param, max_records=max_rec,
                 no_retry=no_retry,
             )
-            return _build_envelope(result)
+            return _build_search_envelope(result, "permits")
 
         elif action == "employees":
             if not id:
                 return format_error("id is required for action='employees'.")
             result = await client.contractor_employees(id[0], limit=limit, no_retry=no_retry)
-            return _build_envelope(result)
+            return _build_single_envelope(result)
 
         elif action == "metrics":
             if not id:
@@ -352,7 +478,7 @@ async def shovels_contractors(
                 id[0], metric_from, metric_to, property_type, tag,
                 no_retry=no_retry,
             )
-            return _build_envelope(result)
+            return _build_single_envelope(result)
 
         else:
             return format_error(
@@ -403,7 +529,7 @@ async def shovels_geo(
             result = await client.resolve_geo(state_code, level="state")
             if result.get("items"):
                 result["_note"] = f"Resolved '{query}' to state code '{state_code}'"
-                return _build_envelope(result)
+                return _build_search_envelope(result, "geo")
         except ShovelsClientError:
             pass
 
@@ -418,7 +544,7 @@ async def shovels_geo(
                 "For broader results, try level='jurisdiction' or level='state'."
             )
 
-        return _build_envelope(result)
+        return _build_search_envelope(result, "geo")
     except ShovelsClientError as e:
         return format_error(str(e))
 
@@ -451,11 +577,11 @@ async def shovels_meta(
             except (ValueError, TypeError):
                 limit_int = settings.DEFAULT_LIMIT
             result = await client.tags_list(limit=limit_int)
-            return _build_envelope(result)
+            return _build_search_envelope(result, "geo")
 
         elif action == "usage":
             result = await client.usage()
-            return _build_envelope(result)
+            return _build_single_envelope(result)
 
         else:
             return format_error(

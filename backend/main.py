@@ -7,8 +7,10 @@ decisions, and resolve geo_ids.
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+import httpx
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from src.mcp.server import mcp
 from src.mcp import tools  # Import to register tools
@@ -66,6 +68,96 @@ app.include_router(health_router)
 
 # Mount FastMCP at root path
 app.mount("/", mcp.streamable_http_app())
+
+
+# ── API Key Middleware ──────────────────────────────────────
+
+# Simple in-memory cache of validated keys to avoid re-checking every request
+_validated_keys: set[str] = set()
+
+
+@app.middleware("http")
+async def require_api_key(request: Request, call_next):
+    """
+    Require a valid X-API-Key header by checking it against the Shovels API.
+    Makes a lightweight call to the /usage endpoint to validate the key.
+    Results are cached in-memory so each key is only checked once.
+    """
+    # Skip auth for health checks and CORS preflight
+    if request.url.path == "/health" or request.method == "OPTIONS":
+        return await call_next(request)
+
+    api_key = request.headers.get("X-API-Key")
+    if not api_key:
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error": "auth_error",
+                "code": 2,
+                "message": "Missing X-API-Key header. Get a key at https://app.shovels.ai",
+            },
+        )
+
+    # Check cache first
+    if api_key not in _validated_keys:
+        # Validate against Shovels API
+        from src.config.settings import settings
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"{settings.SHOVELS_API_BASE}/usage",
+                    headers={"X-API-Key": api_key},
+                )
+
+            if response.status_code == 401:
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "error": "auth_error",
+                        "code": 2,
+                        "message": "Invalid API key. Check your X-API-Key header.",
+                    },
+                )
+
+            if response.status_code == 200:
+                _validated_keys.add(api_key)
+            else:
+                # Unexpected status — log and reject
+                logger.error(
+                    "API key validation returned unexpected status",
+                    extra={"status": response.status_code},
+                )
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "error": "auth_error",
+                        "code": 2,
+                        "message": "Could not validate API key.",
+                    },
+                )
+
+        except (httpx.ConnectError, httpx.TimeoutException) as e:
+            # Shovels API unreachable — reject with 503
+            logger.error(
+                "Shovels API unreachable during key validation",
+                extra={"error": str(e)},
+            )
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "error": "service_unavailable",
+                    "code": 4,
+                    "message": "Shovels API is unreachable. Try again later.",
+                },
+            )
+
+    # Set the caller's key in the request context so tools use it
+    from src.services.shovels_client import set_request_api_key
+    set_request_api_key(api_key)
+
+    return await call_next(request)
+
 
 logger.info("FastMCP mounted at root path")
 

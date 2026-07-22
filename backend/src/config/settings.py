@@ -4,7 +4,7 @@ Configuration settings for the Shovels MCP Server.
 Loads environment variables via Pydantic Settings.
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 
@@ -27,9 +27,7 @@ class Settings(BaseSettings):
     DEFAULT_LIMIT: int = 50
     MAX_RECORDS: int = 10000
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=True)
 
 
 # Global settings instance

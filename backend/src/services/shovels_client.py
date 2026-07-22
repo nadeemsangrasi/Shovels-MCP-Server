@@ -8,6 +8,7 @@ extraction, and auto-pagination.
 
 import asyncio
 import random
+from contextvars import ContextVar
 from typing import Optional, Any
 from urllib.parse import urlencode
 
@@ -18,6 +19,10 @@ from src.utils.errors import ShovelsClientError, ShovelsClientRateLimited
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Per-request API key — set by middleware, cleared after response.
+# Tools use this key when calling the Shovels API, not the env-configured one.
+_request_api_key: ContextVar[Optional[str]] = ContextVar("request_api_key", default=None)
 
 
 class ShovelsClient:
@@ -30,7 +35,10 @@ class ShovelsClient:
     # ── Internal request helpers ──────────────────────────────
 
     def _headers(self) -> dict:
-        return {"X-API-Key": self._api_key}
+        # Use the per-request key (from the caller's X-API-Key header) if set,
+        # otherwise fall back to the instance key (from SHOVELS_API_KEY env).
+        effective_key = _request_api_key.get() or self._api_key
+        return {"X-API-Key": effective_key}
 
     def _extract_credits(self, response: httpx.Response) -> dict:
         """Pull X-Credits-* headers from the response."""
@@ -446,7 +454,32 @@ class ShovelsClient:
         }
 
 
-# Singleton — lazily created on first use
+# ── Per-request API key context ──────────────────────────────
+
+
+def set_request_api_key(api_key: str) -> None:
+    """
+    Set the API key for the current request context.
+
+    Called by middleware before the request handler runs.
+    The tools will pick this up so Shovels API calls use the
+    caller's key instead of the server's env-configured one.
+    """
+    _request_api_key.set(api_key)
+
+
+def get_request_api_key() -> Optional[str]:
+    """Get the API key set for the current request, or None."""
+    return _request_api_key.get()
+
+
+def clear_request_api_key() -> None:
+    """Clear the per-request API key context variable."""
+    _request_api_key.set(None)
+
+
+# ── Singleton ────────────────────────────────────────────────
+
 _client: Optional[ShovelsClient] = None
 
 

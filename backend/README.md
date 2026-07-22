@@ -11,25 +11,22 @@ license: mit
 
 # Shovels MCP Server
 
-An MCP (Model Context Protocol) server wrapping the [Shovels public API](https://api.shovels.ai/v2) — search U.S. building permits, contractors, and zoning/land-use decisions.
+An MCP (Model Context Protocol) server wrapping the [Shovels public API](https://api.shovels.ai/v2) — search U.S. building permits, contractors, and geo-resolve locations.
 
-Built as a lightweight HTTP proxy: 4 consolidated MCP tools instead of 15+ raw API endpoints.
+A 1:1 mirror of the Shovels CLI's business logic, delivered over MCP instead of a shell. Built with **progressive disclosure**: search returns compact rows + `resource` URIs; fetch-by-ID returns full records.
 
 ## Tools
 
-| Tool | What it does |
-|---|---|
-| `shovels_permits` | Search permits by geo + date range, or fetch full records by ID |
-| `shovels_contractors` | Search contractors by geo + date range, or fetch full profiles by ID |
-| `shovels_decisions` | Search zoning/land-use decisions by geo + date range, or fetch full records by ID |
-| `shovels_geo` | Resolve free-text place names to `geo_id` values (required before other searches) |
+| Tool | What it does | Modes |
+|---|---|---|
+| `shovels_permits` | Search permits by geo + date range, or fetch full records by ID | search (compact), get-by-ID (full) |
+| `shovels_contractors` | Search contractors, or fetch profiles, permits, employees, metrics | 5 actions: search, get, permits, employees, metrics |
+| `shovels_geo` | Resolve free-text place names to `geo_id` values | Level-pin or auto-fallback |
+| `shovels_meta` | List valid permit tags, or check API credit usage | tags, usage |
 
 ### Progressive Disclosure
 
-- **Search mode** (no `id`): compact rows with a `resource` URI pointing to more detail
-- **Fetch mode** (`id` supplied): the full record
-
-This keeps token usage low — agents only pay for what they read.
+Search responses return compact rows with a `resource` pointer (e.g. `shovels://permits/<id>`). Agents fetch the full record only when needed — keeping token usage low.
 
 ## Quick Start
 
@@ -42,9 +39,20 @@ export SHOVELS_API_KEY=sk_...
 cd backend
 uvicorn main:app --reload
 
-# 4. Test it
+# 4. Health check (no key required)
 curl http://localhost:8000/health
 ```
+
+## Auth
+
+All endpoints except `/health` require `X-API-Key` header. Keys are validated against the Shovels `/usage` endpoint. Each client brings their own key.
+
+| Scenario | Result |
+|---|---|
+| No `X-API-Key` | 401 |
+| Invalid key | 401 |
+| Valid key | Passes through |
+| `/health` | Always 200 |
 
 ## Environment Variables
 
@@ -59,13 +67,11 @@ curl http://localhost:8000/health
 - **Transport**: MCP Streamable HTTP
 - **Deployment**: HuggingFace Spaces (Docker)
 
-No database, no vector store, no frontend — just a thin proxy to the Shovels REST API with retry logic and credit-header surfacing.
+No database, no vector store, no frontend — just a thin proxy to the Shovels REST API with retry logic, credit-header surfacing, and key validation.
 
 ## Known Constraints
 
 - Free trial: **250 requests** (flat, any size)
-- `geo_id` + `permit_from`/`permit_to` (or `decision_from`/`decision_to`) are **required** for search
+- `geo_id` + date range are **required** for search
 - `contractor_name` requires **3+ characters** (trigram index)
-- `decision_q` capped at **100 characters**
-- Decisions: **ZIP code filtering not supported**
 - Job values, fees, market values are in **cents**

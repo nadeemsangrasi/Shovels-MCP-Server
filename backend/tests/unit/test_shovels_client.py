@@ -577,3 +577,67 @@ class TestSingleton:
         reset_client()
         c2 = get_client()
         assert c1 is not c2
+
+
+# ── Per-request API key context ─────────────────────────
+
+class TestRequestApiKey:
+    """set_request_api_key / get_request_api_key / _headers context tests."""
+
+    def setup_method(self):
+        from src.services.shovels_client import clear_request_api_key
+        clear_request_api_key()
+
+    def test_default_is_none(self):
+        from src.services.shovels_client import get_request_api_key
+        assert get_request_api_key() is None
+
+    def test_set_and_get(self):
+        from src.services.shovels_client import set_request_api_key, get_request_api_key
+        set_request_api_key("sk_from_header")
+        assert get_request_api_key() == "sk_from_header"
+
+    def test_clear_restores_none(self):
+        from src.services.shovels_client import set_request_api_key, get_request_api_key, clear_request_api_key
+        set_request_api_key("sk_temp")
+        assert get_request_api_key() == "sk_temp"
+        clear_request_api_key()
+        assert get_request_api_key() is None
+
+    def test_headers_uses_context_var_when_set(self, client):
+        """_headers() returns the context var key when set, not the instance key."""
+        from src.services.shovels_client import set_request_api_key
+        set_request_api_key("sk_context_key")
+        headers = client._headers()
+        assert headers["X-API-Key"] == "sk_context_key"
+
+    def test_headers_falls_back_to_instance_key(self, client):
+        """_headers() returns the instance key when no context var is set."""
+        from src.services.shovels_client import clear_request_api_key
+        clear_request_api_key()
+        headers = client._headers()
+        assert headers["X-API-Key"] == "test-key"
+
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_request_sends_context_key(self, mock_request, client):
+        """An actual request sends the context var key as X-API-Key."""
+        from src.services.shovels_client import set_request_api_key
+        set_request_api_key("sk_req_test")
+        mock_request.return_value = Response(
+            200, json={"items": [], "size": 0}, headers={"X-Credits-Remaining": "199"},
+        )
+        await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+        headers = mock_request.call_args[1].get("headers", {})
+        assert headers["X-API-Key"] == "sk_req_test"
+
+    @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
+    async def test_request_uses_instance_key_when_no_context(self, mock_request, client):
+        """Without context var, the instance key is sent."""
+        from src.services.shovels_client import clear_request_api_key
+        clear_request_api_key()
+        mock_request.return_value = Response(
+            200, json={"items": [], "size": 0}, headers={"X-Credits-Remaining": "199"},
+        )
+        await client.search_permits("geo_tx", "2026-01-01", "2026-06-30")
+        headers = mock_request.call_args[1].get("headers", {})
+        assert headers["X-API-Key"] == "test-key"

@@ -8,21 +8,22 @@ import os
 import pytest
 from typing import Optional
 from httpx import Request, Response
-from src.services.shovels_client import reset_client
+from src.services.shovels_client import reset_client, clear_request_api_key
 
 
 @pytest.fixture(autouse=True)
 def mock_env():
     """
     Ensure SHOVELS_API_KEY is set for all tests.
-    Resets the ShovelsClient singleton before each test.
+    Resets the ShovelsClient singleton and request API key context before each test.
     """
     # Backup original env
     original_key = os.environ.get("SHOVELS_API_KEY")
     os.environ["SHOVELS_API_KEY"] = "test-api-key"
 
-    # Reset client singleton so each test starts fresh
+    # Reset client singleton and request key context so each test starts fresh
     reset_client()
+    clear_request_api_key()
 
     yield
 

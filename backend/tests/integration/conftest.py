@@ -6,7 +6,7 @@ and a mock for the ShovelsClient used by MCP tool tests.
 """
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 
 from src.services.shovels_client import ShovelsClient
@@ -84,12 +84,20 @@ def app():
 def mock_shovels_api(app):
     """
     Patch ShovelsClient._request to return canned data.
+    Also patch httpx.AsyncClient so the middleware's API key validation
+    call succeeds without hitting the real Shovels API.
     Auto-used for all integration tests so they never hit the real API.
     """
-    from src.services.shovels_client import reset_client
+    from src.services.shovels_client import reset_client, clear_request_api_key
 
     reset_client()
+    clear_request_api_key()
 
-    patcher = patch.object(ShovelsClient, "_request", _mock_request)
-    with patcher:
-        yield
+    mock_usage_response = AsyncMock()
+    mock_usage_response.status_code = 200
+    mock_usage_response.json = AsyncMock(return_value={"data": {"credits_used": 1, "credits_remaining": 199, "credits_limit": 250}})
+
+    patcher_client = patch.object(ShovelsClient, "_request", _mock_request)
+    with patcher_client:
+        with patch("httpx.AsyncClient.get", return_value=mock_usage_response) as mock_get:
+            yield

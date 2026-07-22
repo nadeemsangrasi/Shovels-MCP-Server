@@ -12,8 +12,6 @@ from urllib.parse import urlencode
 
 from src.config.settings import settings
 from src.utils.logger import get_logger
-from src.utils.retry import with_retry
-
 logger = get_logger(__name__)
 
 
@@ -72,7 +70,6 @@ class ShovelsClient:
 
         return {"items": [], "size": 0, "next_cursor": None, **credits}
 
-    @with_retry(max_attempts=3, initial_delay=1.0, backoff_factor=2.0)
     async def _request(
         self,
         method: str,
@@ -80,10 +77,11 @@ class ShovelsClient:
         params: Optional[dict] = None,
     ) -> dict:
         """
-        Make an HTTP request to the Shovels API.
+        Make an HTTP request to the Shovels API with retry on transient errors.
 
-        Retries on 5xx / 429 with exponential backoff.
-        Raises ShovelsClientError on 4xx or repeated failures.
+        Retries on network errors (ConnectionError, TimeoutError) with
+        exponential backoff. API-level errors (4xx, 5xx, 429) propagate
+        immediately as ShovelsClientError.
         """
         url = f"{self._base_url}/{path.lstrip('/')}"
         if params:
@@ -92,17 +90,40 @@ class ShovelsClient:
             if clean_params:
                 url = f"{url}?{urlencode(clean_params, doseq=True)}"
 
+        last_error: Optional[Exception] = None
+        for attempt in range(1, settings.MAX_RETRIES + 1):
+            try:
+                return await self._do_request(method, url)
+            except (httpx.ConnectError, httpx.TimeoutException, httpx.RemoteProtocolError) as e:
+                last_error = e
+                if attempt < settings.MAX_RETRIES:
+                    import asyncio
+                    delay = 2.0 ** attempt  # exponential: 2, 4, 8...
+                    logger.warning(
+                        "Shovels API network error, retrying",
+                        extra={"attempt": attempt, "delay": delay, "error": str(e)},
+                    )
+                    await asyncio.sleep(delay)
+                continue
+
+        # All retries exhausted — re-raise last network error
+        if last_error:
+            raise ShovelsClientError(
+                f"Shovels API unreachable after {settings.MAX_RETRIES} attempts: {last_error}"
+            ) from last_error
+
+        # Should not reach here
+        raise ShovelsClientError("Unexpected error in _request")
+
+    async def _do_request(self, method: str, url: str) -> dict:
+        """Single HTTP request to Shovels API — no retry logic."""
         logger.debug(
             "Shovels API request",
             extra={"method": method, "url": url},
         )
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.request(
-                method,
-                url,
-                headers=self._headers(),
-            )
+            response = await client.request(method, url, headers=self._headers())
 
             # Extract credits even on error for visibility
             credits = self._extract_credits(response)
@@ -112,7 +133,6 @@ class ShovelsClient:
                     "Shovels API rate limited",
                     extra={"credits_remaining": credits.get("X-Credits-Remaining", "unknown")},
                 )
-                # Raise a distinguishable exception so @with_retry catches it
                 raise ShovelsClientError(
                     f"Rate limited (429) — {credits.get('X-Credits-Remaining', '?')} credits remaining"
                 )

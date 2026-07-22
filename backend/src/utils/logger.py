@@ -1,5 +1,5 @@
 """
-Structured JSON logging for the SkillClaw MCP Server.
+Structured JSON logging for the Shovels MCP Server.
 
 Provides consistent, parseable logging with request IDs, latency tracking,
 and contextual information for debugging and monitoring.

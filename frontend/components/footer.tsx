@@ -1,4 +1,4 @@
-import { Shovel } from "lucide-react";
+import { Shovel, Github, Linkedin } from "lucide-react";
 
 const footerLinks = [
   {
@@ -13,7 +13,6 @@ const footerLinks = [
     links: [
       { label: "Documentation", href: "/docs" },
       { label: "API Reference", href: "/docs/api-reference" },
-      { label: "GitHub", href: "https://github.com/daniyalnagori/agentskill-mcp" },
     ],
   },
 ];
@@ -62,21 +61,35 @@ export function Footer() {
 
         <div className="flex flex-col items-start gap-4 border-t border-border pt-8 md:flex-row md:items-center md:justify-between">
           <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Shovels. Open source under the
-            MIT License.
-          </p>
-          <div className="flex items-center gap-6">
+            Built by{" "}
             <a
-              href="#privacy"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+              href="https://github.com/nadeemsangrasi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground transition-colors hover:text-primary"
             >
-              Privacy
+              Nadeem Khan
+            </a>
+            {" "}&copy; {new Date().getFullYear()}
+          </p>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://github.com/nadeemsangrasi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="GitHub"
+            >
+              <Github className="h-5 w-5" />
             </a>
             <a
-              href="#terms"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+              href="https://linkedin.com/in/nadeem-khan1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="LinkedIn"
             >
-              Terms
+              <Linkedin className="h-5 w-5" />
             </a>
           </div>
         </div>

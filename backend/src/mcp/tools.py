@@ -222,26 +222,45 @@ def _build_single_envelope(result: dict) -> dict:
     )
 
 
-def _parse_limit(limit_str: str) -> tuple[str, int]:
+def _parse_size(limit_str: str) -> int:
     """
-    Parse an MVP v2 ``limit`` value into a (limit_param, max_records) pair.
+    Parse a ``limit`` value into a page size (1-100, default 50).
 
-    ``limit`` can be a numeric string ("1"–"100000") or the literal "all".
-    Returns a tuple suitable for passing to ``client._auto_paginate``.
+    Each MCP tool call returns at most one page (capped at 100).
+    Pass ``cursor`` to get the next page.
     """
     if not limit_str or limit_str.strip() == "":
-        return str(settings.DEFAULT_LIMIT), settings.MAX_RECORDS
+        return settings.DEFAULT_LIMIT
 
     if limit_str == "all":
-        return "all", settings.MAX_RECORDS
+        return 100  # max page size
 
     try:
         val = int(limit_str)
         if val < 1:
             val = 1
-        return str(val), min(val, settings.MAX_RECORDS)
+        return min(val, 100)
     except (ValueError, TypeError):
-        return str(settings.DEFAULT_LIMIT), settings.MAX_RECORDS
+        return settings.DEFAULT_LIMIT
+
+
+def _build_search_envelope(result: dict, tool: str) -> dict:
+    """
+    Convert a search result into the ``{{data, meta}}`` envelope
+    with compact items per the progressive-disclosure design.
+    """
+    items = result.get("items", [])
+    credits_used = int(result.get("X-Credits-Request", 0))
+    credits_remaining = int(result.get("X-Credits-Remaining", 0))
+
+    return build_data_meta(
+        _compact_tool_items(items, tool),
+        credits_used=credits_used,
+        credits_remaining=credits_remaining,
+        count=len(items),
+        has_more=result.get("next_cursor") is not None,
+        cursor=result.get("next_cursor"),
+    )
 
 
 # ── shovels_permits ─────────────────────────────────────
@@ -256,9 +275,9 @@ async def shovels_permits(
     permit_status: Optional[list[str]] = None,
     property_type: Optional[str] = None,
     min_job_value: Optional[int] = None,
+    cursor: Optional[str] = None,
     include_count: bool = False,
     limit: str = "50",
-    max_records: int = 10000,
     no_retry: bool = False,
 ) -> dict:
     """
@@ -278,9 +297,9 @@ async def shovels_permits(
 
     🔍 permit_status: final, in_review, active, inactive.
 
-    Pagination: ``limit`` can be a number 1–100000, or ``"all"``
-    (capped at ``max_records``, default 10000).  Use ``include_count``
-    to request a total count.
+    Pagination: each call returns one page (max 100 records). Pass
+    ``cursor`` (from ``meta.cursor`` of the previous page) to get the
+    next page.  ``limit`` controls page size (1-100, default 50).
 
     Args:
         id: 1-50 permit IDs. Present = fetch mode (get by ID).
@@ -291,14 +310,14 @@ async def shovels_permits(
         permit_status: Filter by status (final, in_review, active, inactive).
         property_type: Filter by property type.
         min_job_value: Minimum job value in cents.
+        cursor: Cursor from previous page's ``meta.cursor`` to get the next page.
         include_count: Request total count in the response.
-        limit: Results per search (1-100000, or "all").
-        max_records: Cap when limit="all" (max 100000).
+        limit: Results per page (1-100, or "all" for 100, default 50).
         no_retry: Disable automatic 429 retry.
 
     Returns:
-        ``{data, meta}`` envelope with compact permit records (search)
-        or full permit records (fetch by ID).
+        ``{data, meta}`` envelope — ``data`` is compact items,
+        ``meta.cursor`` points to the next page if available.
     """
     client = get_client()
 
@@ -319,11 +338,12 @@ async def shovels_permits(
         return format_error("permit_to is required (YYYY-MM-DD).")
 
     try:
-        # Map tool-layer params to API-native param names
+        page_size = _parse_size(limit)
         search_params: dict = {
             "geo_id": geo_id,
             "permit_from": permit_from,
             "permit_to": permit_to,
+            "size": page_size,
         }
         if tags:
             search_params["permit_tags"] = tags
@@ -333,17 +353,12 @@ async def shovels_permits(
             search_params["property_type"] = property_type
         if min_job_value is not None:
             search_params["permit_min_job_value"] = min_job_value
+        if cursor:
+            search_params["cursor"] = cursor
         if include_count:
             search_params["include_count"] = True
 
-        limit_param, effective_max = _parse_limit(limit)
-        max_rec = min(max_records, settings.MAX_RECORDS)
-
-        result = await client._auto_paginate(
-            "GET", "permits/search", search_params,
-            limit=limit_param, max_records=max_rec,
-            no_retry=no_retry,
-        )
+        result = await client._request("GET", "permits/search", search_params, no_retry=no_retry)
         return _build_search_envelope(result, "permits")
     except ShovelsClientError as e:
         return format_error(str(e))
@@ -360,13 +375,13 @@ async def shovels_contractors(
     permit_to: Optional[str] = None,
     contractor_classification: Optional[str] = None,
     contractor_name: Optional[str] = None,
+    cursor: Optional[str] = None,
     metric_from: Optional[str] = None,
     metric_to: Optional[str] = None,
     property_type: Optional[str] = None,
     tag: Optional[str] = None,
     include_count: bool = False,
     limit: str = "50",
-    max_records: int = 10000,
     no_retry: bool = False,
 ) -> dict:
     """
@@ -390,6 +405,9 @@ async def shovels_contractors(
     electrical, plumbing, general, roofing, hvac, concrete, framing, drywall,
     painting, flooring, landscaping, masonry, fencing, solar, demolition.
 
+    Pagination: search returns one page (max 100). Pass ``cursor`` from
+    ``meta.cursor`` to get the next page.
+
     Args:
         action: Action to perform (search, get, permits, employees, metrics).
         id: Contractor ID(s). Required for get/permits/employees/metrics.
@@ -398,13 +416,13 @@ async def shovels_contractors(
         permit_to: Required for search and permits (YYYY-MM-DD).
         contractor_classification: Filter by trade classification.
         contractor_name: Filter by name (min 3 characters — trigram index).
+        cursor: Cursor from previous page's ``meta.cursor`` for next page.
         metric_from: Required for metrics (YYYY-MM-DD).
         metric_to: Required for metrics (YYYY-MM-DD).
         property_type: Required for metrics.
         tag: Required for metrics.
         include_count: Request total count.
-        limit: Results per search (1-100000, or "all").
-        max_records: Cap when limit="all".
+        limit: Results per page (1-100, or "all" for 100, default 50).
         no_retry: Disable automatic 429 retry.
 
     Returns:
@@ -413,8 +431,7 @@ async def shovels_contractors(
     client = get_client()
 
     try:
-        limit_param, effective_max = _parse_limit(limit)
-        max_rec = min(max_records, settings.MAX_RECORDS)
+        page_size = _parse_size(limit)
 
         if action == "search":
             if not geo_id:
@@ -428,19 +445,18 @@ async def shovels_contractors(
                 "geo_id": geo_id,
                 "permit_from": permit_from,
                 "permit_to": permit_to,
+                "size": page_size,
             }
             if contractor_classification:
                 search_params["contractor_classification_derived"] = [contractor_classification]
             if contractor_name:
                 search_params["contractor_name"] = contractor_name
+            if cursor:
+                search_params["cursor"] = cursor
             if include_count:
                 search_params["include_count"] = True
 
-            result = await client._auto_paginate(
-                "GET", "contractors/search", search_params,
-                limit=limit_param, max_records=max_rec,
-                no_retry=no_retry,
-            )
+            result = await client._request("GET", "contractors/search", search_params, no_retry=no_retry)
             return _build_search_envelope(result, "contractors")
 
         elif action == "get":
@@ -456,15 +472,17 @@ async def shovels_contractors(
                 return format_error("geo_id, permit_from, and permit_to are required for action='permits'.")
             result = await client.contractor_permits(
                 id[0], geo_id, permit_from, permit_to,
-                limit=limit_param, max_records=max_rec,
-                no_retry=no_retry,
+                limit=limit, no_retry=no_retry,
             )
             return _build_search_envelope(result, "permits")
 
         elif action == "employees":
             if not id:
                 return format_error("id is required for action='employees'.")
-            result = await client.contractor_employees(id[0], limit=limit, no_retry=no_retry)
+            page_size = _parse_size(limit)
+            result = await client.contractor_employees(
+                id[0], size=page_size, cursor=cursor, no_retry=no_retry,
+            )
             return _build_single_envelope(result)
 
         elif action == "metrics":

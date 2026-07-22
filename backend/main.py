@@ -29,15 +29,11 @@ async def lifespan(app: FastAPI):
     """
     logger.info("Starting Shovels MCP Server")
 
-    # Verify Shovels API key is configured
+    # Note: SHOVELS_API_KEY is optional. Each request must include
+    # X-API-Key header — keys are validated per-request via the
+    # Shovels /usage endpoint and forwarded to all tool calls.
     from src.config.settings import settings
-    if not settings.SHOVELS_API_KEY:
-        logger.warning("SHOVELS_API_KEY is not set — server will be non-functional")
-    else:
-        logger.info(
-            "Shovels API configured",
-            extra={"base_url": settings.SHOVELS_API_BASE},
-        )
+    logger.info("Shovels MCP Server starting", extra={"base_url": settings.SHOVELS_API_BASE})
 
     async with mcp.session_manager.run():
         yield

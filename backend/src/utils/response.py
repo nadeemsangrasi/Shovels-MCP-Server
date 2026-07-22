@@ -14,12 +14,13 @@ def build_data_meta(
     credits_remaining: int = 0,
     count: Optional[int] = None,
     has_more: bool = False,
+    cursor: Optional[str] = None,
 ) -> dict:
     """
     Wrap API response data in the ``{data, meta}`` envelope.
 
     When *data* is a list, it's treated as a search result page and the
-    ``meta`` block includes ``count`` and ``has_more``.
+    ``meta`` block includes ``count``, ``has_more``, and ``cursor``.
 
     When *data* is a single dict, the ``meta`` block only carries credit info.
 
@@ -29,20 +30,22 @@ def build_data_meta(
         credits_remaining: Credits remaining on the API key.
         count: Explicit count (defaults to ``len(data)`` for lists).
         has_more: Whether additional pages are available.
+        cursor: Cursor for the next page. When present, the agent can pass it
+                back as ``cursor`` to get the next page of results.
 
     Returns:
         Envelope dict with ``data`` and ``meta`` keys.
     """
     if isinstance(data, list):
-        return {
-            "data": data,
-            "meta": {
-                "count": count if count is not None else len(data),
-                "has_more": has_more,
-                "credits_used": credits_used,
-                "credits_remaining": credits_remaining,
-            },
+        meta: dict[str, Any] = {
+            "count": count if count is not None else len(data),
+            "has_more": has_more,
+            "credits_used": credits_used,
+            "credits_remaining": credits_remaining,
         }
+        if cursor:
+            meta["cursor"] = cursor
+        return {"data": data, "meta": meta}
 
     # Single-object response (get-by-ID, usage)
     return {

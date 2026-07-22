@@ -347,39 +347,43 @@ class ShovelsClient:
         permit_from: str,
         permit_to: str,
         limit: str = "50",
-        max_records: int = 10000,
+        cursor: Optional[str] = None,
         no_retry: bool = False,
     ) -> dict:
-        """List permits filed by a contractor."""
+        """List permits filed by a contractor (single page)."""
         params = {
             "geo_id": geo_id,
             "permit_from": permit_from,
             "permit_to": permit_to,
         }
-        return await self._auto_paginate(
+        try:
+            params["size"] = min(int(limit), 100)
+        except (ValueError, TypeError):
+            params["size"] = settings.DEFAULT_LIMIT
+        if cursor:
+            params["cursor"] = cursor
+        return await self._request(
             "GET",
             f"contractors/{contractor_id}/permits",
             params,
-            limit=limit,
-            max_records=max_records,
             no_retry=no_retry,
         )
 
     async def contractor_employees(
         self,
         contractor_id: str,
-        limit: str = "50",
+        size: int = 50,
+        cursor: Optional[str] = None,
         no_retry: bool = False,
     ) -> dict:
         """List employees of a contractor."""
-        try:
-            size = int(limit)
-        except (ValueError, TypeError):
-            size = settings.DEFAULT_LIMIT
+        params: dict[str, Any] = {"size": min(size, 100)}
+        if cursor:
+            params["cursor"] = cursor
         return await self._request(
             "GET",
             f"contractors/{contractor_id}/employees",
-            {"size": size},
+            params,
             no_retry=no_retry,
         )
 
@@ -428,10 +432,18 @@ class ShovelsClient:
 
         for lvl in levels:
             try:
+                # Correct pluralization for Shovels API endpoint paths
+                if lvl == "city":
+                    endpoint = "cities/search"
+                elif lvl == "county":
+                    endpoint = "counties/search"
+                elif lvl == "address":
+                    endpoint = "addresses/search"
+                else:
+                    endpoint = f"{lvl}s/search"
+
                 result = await self._request(
-                    "GET",
-                    f"{lvl}s/search" if lvl != "address" else "addresses/search",
-                    {"q": query, "size": 5},
+                    "GET", endpoint, {"q": query, "size": 5},
                 )
                 items = result.get("items", result if isinstance(result, list) else [])
                 if items:
@@ -484,12 +496,18 @@ _client: Optional[ShovelsClient] = None
 
 
 def get_client() -> ShovelsClient:
-    """Get the ShovelsClient singleton."""
+    """Get the ShovelsClient singleton.
+
+    The client's ``_headers()`` method reads the per-request API key
+    from a ContextVar (set by middleware from the ``X-API-Key`` header).
+    The fallback instance key is a placeholder — real auth comes from
+    each request's header.
+    """
     global _client
     if _client is None:
         logger.info("Initialising ShovelsClient")
         _client = ShovelsClient(
-            api_key=settings.SHOVELS_API_KEY,
+            api_key=settings.SHOVELS_API_KEY or "placeholder",
             base_url=settings.SHOVELS_API_BASE,
         )
     return _client

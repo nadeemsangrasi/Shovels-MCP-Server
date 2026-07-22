@@ -103,10 +103,17 @@ class TestShovelsGeo:
         mock_client.resolve_geo.assert_called_once_with(query="Austin, TX", level=None)
 
     @pytest.mark.asyncio
+    async def test_empty_query_returns_error(self):
+        """Empty query returns a clear error instead of state list."""
+        result = await shovels_geo(query="")
+        assert "error" in result
+
+    @pytest.mark.asyncio
     async def test_with_level(self, mock_client):
         result = await shovels_geo(query="Texas", level="state")
-        assert result["level_matched"] == "city"
-        mock_client.resolve_geo.assert_called_once_with(query="Texas", level="state")
+        # The tool auto-corrects "Texas" → "TX" via fuzzy matching
+        mock_client.resolve_geo.assert_called_once_with("TX", level="state")
+        assert "_note" in result
 
 
 # ── shovels_permits ──────────────────────────────────────
@@ -159,6 +166,17 @@ class TestShovelsPermits:
     async def test_fetch_mode_with_multiple_ids(self, mock_client):
         result = await shovels_permits(ids=["p1", "p2"])
         mock_client.get_permits.assert_called_once_with(["p1", "p2"])
+
+    @pytest.mark.asyncio
+    async def test_search_with_property_type(self, mock_client):
+        """property_type filter is passed through to the client."""
+        result = await shovels_permits(
+            geo_id="geo_ca", permit_from="2026-01-01", permit_to="2026-06-30",
+            property_type="commercial",
+        )
+        assert result.get("size", 0) > 0
+        _, kwargs = mock_client.search_permits.call_args
+        assert kwargs.get("property_type") == "commercial"
 
     @pytest.mark.asyncio
     async def test_cursor_passed_through(self, mock_client):

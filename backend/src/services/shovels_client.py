@@ -170,6 +170,7 @@ class ShovelsClient:
         permit_status: Optional[list[str]] = None,
         permit_min_job_value: Optional[int] = None,
         contractor_classification_derived: Optional[list[str]] = None,
+        property_type: Optional[str] = None,
         cursor: Optional[str] = None,
         size: int = 20,
     ) -> dict:
@@ -188,6 +189,8 @@ class ShovelsClient:
             params["permit_min_job_value"] = permit_min_job_value
         if contractor_classification_derived:
             params["contractor_classification_derived"] = contractor_classification_derived
+        if property_type:
+            params["property_type"] = property_type
         if cursor:
             params["cursor"] = cursor
 

@@ -59,6 +59,17 @@ Optional:  level  — "address" | "city" | "county" | "jurisdiction" | "state"
 **Without `level`** (auto fallback):
 The tool tries address → city → county → jurisdiction → state and returns the first match.
 
+**🔍 Fuzzy matching for states:**
+Common state name typos are auto-corrected before hitting the API:
+```json
+{"query": "Taxas", "level": "state"}
+→ {"items": [{"geo_id": "TX", "name": "Texas"}], "_note": "Resolved 'Taxas' to state code 'TX'"}
+```
+
+**📋 Helpful notes are added to responses:**
+- When a query falls through to address level, a `_note` field suggests using `level='jurisdiction'` for broader results
+- When a state name is fuzzy-matched, the `_note` shows what was resolved
+
 **Known limitations:**
 | Level | Works? | Notes |
 |---|---|---|
@@ -75,10 +86,20 @@ The tool tries address → city → county → jurisdiction → state and return
 ```
 Required:  geo_id + permit_from + permit_to
 Optional:  permit_status, permit_tags, permit_min_job_value,
-           contractor_classification_derived, cursor, size (max 100)
+           contractor_classification_derived, property_type,
+           cursor, size (max 100)
 ```
 
-**Search mode** (returns full records with all fields):
+**🏠 `property_type` filter** (new — highest-impact addition):
+Filter by property classification: `commercial`, `residential`, `industrial`, `office`, `vacant_land`, `exempt`, `mixed_use`.
+
+```json
+{"geo_id": "TX", "permit_from": "2026-01-01", "permit_to": "2026-06-30", "property_type": "commercial", "size": 5}
+```
+
+This eliminates the need to dump thousands of rows and manually filter. Instead of 5,596 lines of mixed results, you get only commercial permits.
+
+**Search mode** (returns compact records with null fields stripped):
 ```json
 {"geo_id": "TX", "permit_from": "2026-01-01", "permit_to": "2026-06-30", "size": 5}
 ```
@@ -201,6 +222,20 @@ All tools return JSON with this structure:
 
 ---
 
+## Response Features
+
+### Compact mode (null fields stripped)
+All responses have null/empty fields stripped to reduce payload size. A 162k-char response with 80% null fields becomes ~30k chars.
+
+### Helpful `_note` fields
+- **Geo tool**: `_note` explains what level was matched and suggests alternatives
+- **Fuzzy matching**: `_note` shows what the input was resolved to
+
+### `_warning` fields
+- **decision_q truncation**: If `decision_q` exceeds 100 chars, a `_warning` field reports the truncation
+
+---
+
 ## Error Handling
 
 ### Common errors and their causes
@@ -223,5 +258,9 @@ The Shovels API does **not** expose individual `GET /{resource}/{id}` endpoints 
 ## Credits & Rate Limits
 
 - Free trial: **250 requests** (flat, any size)
-- Every response includes `X-Credits-Remaining` so the agent can track usage
+- Every response includes **three credit headers** so the agent can track usage:
+  - `X-Credits-Request` — credits used by this request
+  - `X-Credits-Limit` — total credits available
+  - `X-Credits-Remaining` — credits left
+- Example: `{"X-Credits-Remaining": "199", "X-Credits-Limit": "250"}`
 - 429 errors are handled cleanly with a descriptive message

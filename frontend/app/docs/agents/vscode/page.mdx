@@ -1,0 +1,42 @@
+# VS Code Setup
+
+Configure Shovels with Visual Studio Code.
+
+## Prerequisites
+
+- VS Code with GitHub Copilot or MCP extension
+- A Shovels API key
+
+## Configuration
+
+Add Shovels to your VS Code MCP configuration (`~/.vscode/mcp.json`):
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "shovels": {
+        "type": "http",
+        "url": "http://localhost:8000",
+        "headers": {
+          "X-API-Key": "YOUR_API_KEY"
+        }
+      }
+    }
+  }
+}
+```
+
+## Usage
+
+Once configured, VS Code Copilot can access Shovels tools:
+
+```
+shovels_permits(geo_id="TX", permit_from="2026-01-01", permit_to="2026-06-30", limit="5")
+```
+
+## Troubleshooting
+
+- Restart VS Code after editing the config
+- Verify the Shovels server is running: `curl http://localhost:8000/health`
+- Check JSON syntax is valid

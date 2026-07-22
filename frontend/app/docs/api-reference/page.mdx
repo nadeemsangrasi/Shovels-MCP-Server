@@ -1,0 +1,162 @@
+# API Reference
+
+Direct HTTP API documentation for the Shovels MCP server.
+
+## Base URL
+
+When running locally:
+```
+http://localhost:8000
+```
+
+## Authentication
+
+All API requests require authentication via the `X-API-Key` header:
+
+```
+X-API-Key: your-shovels-api-key
+```
+
+## MCP Tools
+
+Shovels exposes **4 MCP tools** for querying building permit data.
+
+### shovels_geo
+
+Resolve free-text place names to Shovels geo_ids. **Required first step** before any search tool.
+
+**Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `query` | `string` | Yes | Address, city, state code, or jurisdiction name |
+| `level` | `string` | No | `address`, `city`, `county`, `jurisdiction`, `state` |
+| `limit` | `string` | No | Results per search (default: "50") |
+
+**Example Request:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "shovels_geo",
+    "arguments": {
+      "query": "Austin, TX"
+    }
+  },
+  "id": 1
+}
+```
+
+**Example Response:**
+
+```json
+{
+  "data": [
+    {
+      "geo_id": "q8fdm_HmVcc",
+      "level": "jurisdiction",
+      "display_name": "Austin, TX"
+    }
+  ],
+  "meta": {
+    "count": 1,
+    "has_more": false,
+    "credits_used": 1,
+    "credits_remaining": 249
+  }
+}
+```
+
+---
+
+### shovels_permits
+
+Search U.S. building permits, or fetch full records by ID.
+
+**Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | `string[]` | For fetch | 1-50 permit IDs (switches to get-by-ID mode) |
+| `geo_id` | `string` | For search | State code, ZIP, or geo_id from shovels_geo |
+| `permit_from` | `string` | For search | Start date (YYYY-MM-DD) |
+| `permit_to` | `string` | For search | End date (YYYY-MM-DD) |
+| `tags` | `string[]` | No | Filter by work-type tags (electrical, roofing, etc.) |
+| `property_type` | `string` | No | commercial, residential, industrial, office, vacant_land, exempt, mixed_use |
+| `min_job_value` | `integer` | No | Minimum job value in cents |
+| `include_count` | `boolean` | No | Request total count |
+| `limit` | `string` | No | Results (1-100000, or "all") |
+| `max_records` | `integer` | No | Cap when limit="all" (default: 10000) |
+| `no_retry` | `boolean` | No | Disable automatic 429 retry |
+
+**Example Request:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "shovels_permits",
+    "arguments": {
+      "geo_id": "TX",
+      "permit_from": "2026-01-01",
+      "permit_to": "2026-06-30",
+      "property_type": "commercial",
+      "limit": "5"
+    }
+  },
+  "id": 2
+}
+```
+
+---
+
+### shovels_contractors
+
+Search/fetch contractors, their permits, employees, or monthly metrics.
+
+**Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `action` | `string` | No | `search`, `get`, `permits`, `employees`, `metrics` |
+| `id` | `string[]` | For get/permits/employees/metrics | Contractor ID(s) |
+| `geo_id` | `string` | For search/permits | State code or geo_id |
+| `permit_from` | `string` | For search/permits | Start date (YYYY-MM-DD) |
+| `permit_to` | `string` | For search/permits | End date (YYYY-MM-DD) |
+| `contractor_classification` | `string` | No | Trade classification |
+| `metric_from` | `string` | For metrics | Start date (YYYY-MM-DD) |
+| `metric_to` | `string` | For metrics | End date (YYYY-MM-DD) |
+| `property_type` | `string` | For metrics | Property classification |
+| `tag` | `string` | For metrics | Work-type tag |
+| `include_count` | `boolean` | No | Request total count |
+| `limit` | `string` | No | Results (1-100000, or "all") |
+| `max_records` | `integer` | No | Cap when limit="all" |
+| `no_retry` | `boolean` | No | Disable automatic 429 retry |
+
+---
+
+## MCP Tools Summary
+
+| Tool | Description |
+|------|-------------|
+| `shovels_geo` | Resolve free-text places to geo_ids |
+| `shovels_permits` | Search or fetch building permits |
+| `shovels_contractors` | Search/fetch contractors and related data |
+| `shovels_meta` | List permit tags or check credit usage |
+
+## Error Codes
+
+| Status | Error Type | Description |
+|--------|------------|-------------|
+| 401 | `auth_error` | Invalid or missing API key |
+| 429 | `rate_limited` | Too many requests (auto-retried with backoff) |
+| 500 | `server_error` | Server error — try again later |
+
+## Notes
+
+- 💰 All monetary values are in **cents** (divide by 100 for dollars)
+- 🏷️ Tags describe work type, not property classification
+- 📋 Free trial: 250 requests flat

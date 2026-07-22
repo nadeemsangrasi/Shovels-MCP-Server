@@ -1,0 +1,47 @@
+# All MCP Clients
+
+Shovels works with any MCP-compatible AI agent. Below are configuration examples for popular clients.
+
+## Configuration
+
+All clients use the same MCP server configuration pattern:
+
+```json
+{
+  "mcpServers": {
+    "shovels": {
+      "url": "http://localhost:8000",
+      "headers": {
+        "X-API-Key": "your-shovels-api-key"
+      }
+    }
+  }
+}
+```
+
+For local development, Shovels runs on `http://localhost:8000` by default.
+
+## Agent Setup Guides
+
+| Agent | Type | Guide |
+|-------|------|-------|
+| Claude Code | CLI | See [Claude Code setup](/docs/agents/claude-code) |
+| Cursor | Editor | Configure via `~/.cursor/mcp.json` using the pattern above |
+| VS Code | Editor | Configure via `~/.vscode/mcp.json` using the pattern above |
+| Windsurf | Editor | Configure via Windsurf MCP settings |
+| Codex | CLI | Configure via Codex MCP settings |
+| OpenCode | CLI | Configure via OpenCode MCP settings |
+
+## Getting Your API Key
+
+To use Shovels, you need a Shovels API key:
+
+1. Sign up at [app.shovels.ai](https://app.shovels.ai)
+2. Generate a new API key
+3. Replace `YOUR_API_KEY` in the configurations above with your actual key
+
+## Need Help?
+
+- Check the [Quickstart Guide](/docs) for basic setup
+- See agent-specific pages for detailed configuration
+- Review the [API Reference](/docs/api-reference) for tool documentation

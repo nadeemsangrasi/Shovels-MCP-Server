@@ -1,0 +1,42 @@
+# OpenCode Setup
+
+Configure Shovels with OpenCode.
+
+## Prerequisites
+
+- OpenCode installed
+- A Shovels API key
+
+## Configuration
+
+Add Shovels to your OpenCode config (`~/.opencode/config.json`):
+
+```json
+{
+  "mcp": {
+    "shovels": {
+      "type": "remote",
+      "url": "http://localhost:8000",
+      "headers": {
+        "X-API-Key": "YOUR_API_KEY"
+      },
+      "enabled": true
+    }
+  }
+}
+```
+
+## Usage
+
+Once configured, OpenCode can access Shovels tools:
+
+```
+shovels_geo("Austin, TX")
+shovels_permits(geo_id="TX", permit_from="2026-01-01", permit_to="2026-06-30")
+```
+
+## Troubleshooting
+
+- Restart OpenCode after configuration changes
+- Verify the Shovels server is running on port 8000
+- Check JSON syntax is valid

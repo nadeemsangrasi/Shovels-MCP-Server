@@ -1,0 +1,40 @@
+# Cursor Setup
+
+Configure Shovels with Cursor AI editor.
+
+## Prerequisites
+
+- Cursor editor installed
+- A Shovels API key
+
+## Configuration
+
+Add Shovels to your Cursor MCP configuration (`~/.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "shovels": {
+      "url": "http://localhost:8000",
+      "headers": {
+        "X-API-Key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+## Usage
+
+Once configured, Cursor can access Shovels tools in AI conversations:
+
+```
+shovels_geo("Austin, TX")
+shovels_permits(geo_id="TX", permit_from="2026-01-01", permit_to="2026-06-30")
+```
+
+## Troubleshooting
+
+- Restart Cursor after editing the config file
+- Verify the JSON syntax is valid
+- Ensure the Shovels server is running on port 8000

@@ -1,0 +1,45 @@
+# Quickstart Guide
+
+Get started with Shovels MCP in 3 simple steps.
+
+## 1. Get an API Key
+
+Sign up for a free Shovels API key.
+
+Visit [app.shovels.ai](https://app.shovels.ai) and create an account. The free trial includes **250 requests** — enough to evaluate the full service.
+
+## 2. Configure Your Agent
+
+Add Shovels MCP to your AI agent's configuration.
+
+Choose your agent and follow the setup instructions:
+
+- [Claude Code](/docs/agents/claude-code) — Anthropic's official CLI tool
+- [Cursor](/docs/agents/cursor) — AI-first code editor
+- [Codex](/docs/agents/codex) — OpenAI's code assistant
+- [VS Code](/docs/agents/vscode) — Visual Studio Code integration
+- [Windsurf](/docs/agents/windsurf) — AI-powered development environment
+- [OpenCode](/docs/agents/opencode) — Open-source code assistant
+
+Or see [All MCP Clients](/docs/clients) for a comprehensive list.
+
+## 3. Start Querying
+
+Once configured, your agent can immediately search permits, contractors, and decisions:
+
+```bash
+# Resolve a location to geo_id
+shovels_geo("Austin, TX")
+
+# Search building permits
+shovels_permits(geo_id="TX", permit_from="2026-01-01", permit_to="2026-06-30", property_type="commercial")
+
+# Find contractors
+shovels_contractors(geo_id="TX", permit_from="2026-01-01", permit_to="2026-06-30", contractor_classification="electrical")
+```
+
+## What's Next?
+
+- [Introduction](/docs/intro) — Learn about the Shovels MCP server
+- [API Reference](/docs/api-reference) — Complete tool documentation
+- [Agent Setup Guides](/docs/agents/claude-code) — Detailed configuration for specific agents

@@ -1,0 +1,39 @@
+# Windsurf Setup
+
+Configure Shovels with Windsurf AI development environment.
+
+## Prerequisites
+
+- Windsurf IDE installed
+- A Shovels API key
+
+## Configuration
+
+Add Shovels to your Windsurf MCP configuration (`~/.windsurf/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "shovels": {
+      "url": "http://localhost:8000",
+      "headers": {
+        "X-API-Key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+## Usage
+
+Once configured, Windsurf can access Shovels tools:
+
+```
+shovels_contractors(action="search", geo_id="CA", permit_from="2026-01-01", permit_to="2026-06-30")
+```
+
+## Troubleshooting
+
+- Restart Windsurf after configuration changes
+- Verify the Shovels server is running
+- Check that the URL and port are correct

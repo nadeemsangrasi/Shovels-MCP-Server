@@ -1,0 +1,79 @@
+# Claude Code Setup
+
+Configure Shovels with Anthropic's Claude Code CLI.
+
+## Prerequisites
+
+- Node.js 18 or higher
+- Claude Code CLI installed
+- A Shovels API key
+
+## Configuration
+
+Add Shovels as an MCP server in Claude Code:
+
+### Remote Server
+
+If your Shovels instance is running remotely:
+
+```bash
+claude mcp add --scope user --transport http shovels https://your-shovels-instance.com/mcp \
+  --header "X-API-Key: YOUR_API_KEY"
+```
+
+### Local Server
+
+For a local Shovels instance running on `localhost:8000`:
+
+```json
+{
+  "mcpServers": {
+    "shovels": {
+      "url": "http://localhost:8000",
+      "headers": {
+        "X-API-Key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+## Usage Examples
+
+Once configured, use Shovels tools in your Claude Code sessions:
+
+### Search for building permits
+
+```
+shovels_permits(geo_id="TX", permit_from="2026-01-01", permit_to="2026-06-30")
+```
+
+### Find contractors
+
+```
+shovels_contractors(action="search", geo_id="CA", permit_from="2026-01-01", permit_to="2026-06-30")
+```
+
+### Resolve a location
+
+```
+shovels_geo("Austin, TX")
+```
+
+## Troubleshooting
+
+### Connection refused
+
+If you see connection errors:
+
+- Ensure the Shovels server is running: `python -m uvicorn main:app --host 0.0.0.0 --port 8000`
+- Check the URL and port in your MCP configuration
+- Verify no firewall is blocking the connection
+
+### Invalid API key
+
+If you receive an authentication error:
+
+- Verify your API key is correctly set in the `X-API-Key` header
+- Check that the key hasn't been revoked
+- Ensure there are no extra spaces or quotes around the key

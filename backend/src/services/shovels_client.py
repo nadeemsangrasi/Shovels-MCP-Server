@@ -394,7 +394,7 @@ class ShovelsClient:
 
     async def tags_list(self, limit: int = 50, no_retry: bool = False) -> dict:
         """List valid permit tag values."""
-        return await self._request("GET", "tags", {"size": limit}, no_retry=no_retry)
+        return await self._request("GET", "list/tags", {"size": limit}, no_retry=no_retry)
 
     async def usage(self, no_retry: bool = False) -> dict:
         """Show current API credit usage."""

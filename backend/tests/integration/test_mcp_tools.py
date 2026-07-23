@@ -28,7 +28,7 @@ def mock_client():
     }
 
     # Permits search
-    client._auto_paginate.return_value = {
+    client._request.return_value = {
         "items": [{
             "id": "p1", "number": "RE2303928",
             "type": "electrical - 1 & 2 unit residential",
@@ -49,7 +49,7 @@ def mock_client():
     }
 
     # Contractors search
-    client._auto_paginate.return_value = {
+    client._request.return_value = {
         "items": [{
             "id": "c1", "name": "ABC Construction",
             "classification": "General", "city": "Austin", "state": "TX",
@@ -163,7 +163,7 @@ class TestShovelsPermits:
         )
         assert "data" in result
         assert "meta" in result
-        mock_client._auto_paginate.assert_called_once()
+        mock_client._request.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_search_with_tags_filter(self, mock_client):
@@ -173,10 +173,7 @@ class TestShovelsPermits:
             tags=["electrical", "roofing"], limit="10",
         )
         assert "data" in result
-        _, kwargs = mock_client._auto_paginate.call_args
-        search_params = kwargs.get("search_params") or kwargs.get("params") or kwargs.get("kwargs", {})
-        # The auto_paginate receives params via keyword after the path
-        assert mock_client._auto_paginate.called
+        assert mock_client._request.called
 
     @pytest.mark.asyncio
     async def test_search_with_property_type(self, mock_client):
@@ -232,7 +229,7 @@ class TestShovelsContractors:
         )
         assert "data" in result
         assert "meta" in result
-        mock_client._auto_paginate.assert_called_once()
+        mock_client._request.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_success(self, mock_client):

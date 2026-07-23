@@ -132,20 +132,6 @@ def _compact_contractor(item: dict) -> dict:
     })
 
 
-def _compact_decision(item: dict) -> dict:
-    """
-    Reduce a full decision record to the compact search-mode shape.
-    """
-    return _strip_nulls({
-        "id": item.get("id"),
-        "category": item.get("category"),
-        "status": item.get("status"),
-        "date": item.get("decision_date") or item.get("date"),
-        "description": item.get("description"),
-        "resource": f"shovels://decisions/{item.get('id')}",
-    })
-
-
 def _compact_tool_items(items: list, tool: str) -> list:
     """
     Compact search results by tool type to reduce token payload.
@@ -155,15 +141,13 @@ def _compact_tool_items(items: list, tool: str) -> list:
         return [_compact_permit(item) for item in items]
     if tool == "contractors":
         return [_compact_contractor(item) for item in items]
-    if tool == "decisions":
-        return [_compact_decision(item) for item in items]
     # Default: just strip nulls
     return [_strip_nulls(item) for item in items]
 
 
 def _build_search_envelope(result: dict, tool: str) -> dict:
     """
-    Convert a search result into the ``{{data, meta}}`` envelope
+    Convert a search result into the ``{data, meta}`` envelope
     with compact items per the progressive-disclosure design.
     """
     items = result.get("items", [])
@@ -181,12 +165,12 @@ def _build_search_envelope(result: dict, tool: str) -> dict:
 
 def _build_single_envelope(result: dict) -> dict:
     """
-    Convert a get-by-ID result into the ``{{data, meta}}`` envelope
+    Convert a get-by-ID result into the ``{data, meta}`` envelope
     with the full record (no compaction).
 
     Handles two shapes from the client:
-    - Flat dict (single-ID get): ``{{"id": "p1", "type": ..., "X-Credits-*": ...}}``
-    - List-wrapped (multi-ID get): ``{{"items": [{{"id": "p1"}}], ...}}``
+    - Flat dict (single-ID get): ``{"id": "p1", "type": ..., "X-Credits-*": ...}``
+    - List-wrapped (multi-ID get): ``{"items": [{"id": "p1"}], ...}``
     """
     credits_used = int(result.get("X-Credits-Request", 0))
     credits_remaining = int(result.get("X-Credits-Remaining", 0))
@@ -246,7 +230,7 @@ def _parse_size(limit_str: str) -> int:
 
 def _build_search_envelope(result: dict, tool: str) -> dict:
     """
-    Convert a search result into the ``{{data, meta}}`` envelope
+    Convert a search result into the ``{data, meta}`` envelope
     with compact items per the progressive-disclosure design.
     """
     items = result.get("items", [])
@@ -608,3 +592,42 @@ async def shovels_meta(
 
     except ShovelsClientError as e:
         return format_error(str(e))
+
+
+# ── MCP Resources (Progressive Disclosure) ──────────────
+# These register read_resource handlers so agents can fetch
+# full records by URI without loading the tool parameter schema.
+
+@mcp.resource("shovels://permits/{permit_id}")
+async def get_permit_resource(permit_id: str) -> dict:
+    """
+    Fetch a full permit record by its resource URI.
+
+    Called when an agent reads shovels://permits/{permit_id}
+    to get the complete record (20+ fields) without loading
+    the tool parameter schema.
+    """
+    client = get_client()
+    try:
+        result = await client.get_permits([permit_id])
+        return _build_single_envelope(result)
+    except ShovelsClientError as e:
+        return format_error(str(e))
+
+
+@mcp.resource("shovels://contractors/{contractor_id}")
+async def get_contractor_resource(contractor_id: str) -> dict:
+    """
+    Fetch a full contractor record by its resource URI.
+
+    Called when an agent reads shovels://contractors/{contractor_id}
+    to get the complete record without loading the tool parameter schema.
+    """
+    client = get_client()
+    try:
+        result = await client.get_contractors([contractor_id])
+        return _build_single_envelope(result)
+    except ShovelsClientError as e:
+        return format_error(str(e))
+
+

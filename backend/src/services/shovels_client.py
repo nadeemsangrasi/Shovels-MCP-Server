@@ -274,22 +274,12 @@ class ShovelsClient:
         return await self._request("GET", "permits/search", params)
 
     async def get_permits(self, ids: list[str]) -> dict:
-        """Fetch full permit records by ID(s)."""
-        if len(ids) == 1:
-            return await self._request("GET", f"permits/{ids[0]}")
+        """Fetch full permit records by ID(s).
 
-        results = await asyncio.gather(
-            *(self._request("GET", f"permits/{pid}") for pid in ids),
-            return_exceptions=True,
-        )
-        items = []
-        for pid, result in zip(ids, results):
-            if isinstance(result, Exception):
-                logger.error("Failed to fetch permit", extra={"id": pid, "error": str(result)})
-                continue
-            items.append(result)
-
-        return {"items": items, "size": len(items), "next_cursor": None}
+        Calls ``GET /permits?id=...`` (id as query parameter, not path).
+        Single or multiple IDs — the API accepts up to 50 per call.
+        """
+        return await self._request("GET", "permits", {"id": ids})
 
     # ── Contractors ───────────────────────────────────────────
 
@@ -323,22 +313,12 @@ class ShovelsClient:
         return await self._request("GET", "contractors/search", params)
 
     async def get_contractors(self, ids: list[str]) -> dict:
-        """Fetch full contractor records by ID(s)."""
-        if len(ids) == 1:
-            return await self._request("GET", f"contractors/{ids[0]}")
+        """Fetch full contractor records by ID(s).
 
-        results = await asyncio.gather(
-            *(self._request("GET", f"contractors/{cid}") for cid in ids),
-            return_exceptions=True,
-        )
-        items = []
-        for cid, result in zip(ids, results):
-            if isinstance(result, Exception):
-                logger.error("Failed to fetch contractor", extra={"id": cid, "error": str(result)})
-                continue
-            items.append(result)
-
-        return {"items": items, "size": len(items), "next_cursor": None}
+        Calls ``GET /contractors?id=...`` (id as query parameter, not path).
+        Single or multiple IDs — the API accepts up to 50 per call.
+        """
+        return await self._request("GET", "contractors", {"id": ids})
 
     async def contractor_permits(
         self,

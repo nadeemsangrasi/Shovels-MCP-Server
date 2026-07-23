@@ -192,38 +192,44 @@ class TestGetPermits:
 
     @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
     async def test_single_id(self, mock_request, client):
-        """Single ID fetches /permits/{id} directly."""
+        """Single ID calls GET /permits?id=p1."""
         mock_request.return_value = Response(
             200,
-            json={"id": "p1", "type": "electrical", "status": "active"},
+            json={"items": [{"id": "p1", "type": "electrical", "status": "active"}], "size": 1},
             headers={"X-Credits-Remaining": "199"},
         )
         result = await client.get_permits(["p1"])
-        assert result["id"] == "p1"
-        _assert_url_contains(mock_request, "permits/p1")
+        assert result["items"][0]["id"] == "p1"
+        _assert_url_contains(mock_request, "permits")
+        _assert_url_contains(mock_request, "id=p1")
 
     @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
     async def test_multiple_ids(self, mock_request, client):
-        """Multiple IDs — parallel fetches aggregated into items."""
-        mock_request.side_effect = [
-            Response(200, json={"id": "p1", "status": "active"}, headers={"X-Credits-Remaining": "199"}),
-            Response(200, json={"id": "p2", "status": "final"}, headers={"X-Credits-Remaining": "198"}),
-        ]
+        """Multiple IDs — single request with multiple id query params."""
+        mock_request.return_value = Response(
+            200,
+            json={
+                "items": [
+                    {"id": "p1", "status": "active"},
+                    {"id": "p2", "status": "final"},
+                ],
+                "size": 2,
+            },
+            headers={"X-Credits-Remaining": "199"},
+        )
         result = await client.get_permits(["p1", "p2"])
         assert len(result["items"]) == 2
         assert result["items"][0]["id"] == "p1"
         assert result["items"][1]["id"] == "p2"
+        _assert_url_contains(mock_request, "id=p1")
+        _assert_url_contains(mock_request, "id=p2")
 
     @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
-    async def test_partial_failure_returns_valid_results(self, mock_request, client):
-        """One ID fails — returns the successful ones."""
-        mock_request.side_effect = [
-            Response(200, json={"id": "p1", "status": "active"}, headers={}),
-            ShovelsClientError("Not found"),
-        ]
-        result = await client.get_permits(["p1", "p2"])
-        assert len(result["items"]) == 1
-        assert result["items"][0]["id"] == "p1"
+    async def test_api_error_propagates(self, mock_request, client):
+        """API error propagates as ShovelsClientError."""
+        mock_request.return_value = Response(404, json={"detail": "Not Found"}, headers={})
+        with pytest.raises(ShovelsClientError):
+            await client.get_permits(["nonexistent"])
 
 
 # ── search_contractors ───────────────────────────────────
@@ -264,17 +270,28 @@ class TestGetContractors:
 
     @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
     async def test_single_id(self, mock_request, client):
-        mock_request.return_value = Response(200, json={"id": "c1"}, headers={})
+        """Single ID calls GET /contractors?id=c1."""
+        mock_request.return_value = Response(
+            200,
+            json={"items": [{"id": "c1", "name": "ABC"}], "size": 1},
+            headers={},
+        )
         result = await client.get_contractors(["c1"])
-        assert result["id"] == "c1"
-        _assert_url_contains(mock_request, "contractors/c1")
+        assert result["items"][0]["id"] == "c1"
+        _assert_url_contains(mock_request, "contractors")
+        _assert_url_contains(mock_request, "id=c1")
 
     @patch("httpx.AsyncClient.request", new_callable=AsyncMock)
     async def test_multiple_ids(self, mock_request, client):
-        mock_request.side_effect = [
-            Response(200, json={"id": "c1"}, headers={}),
-            Response(200, json={"id": "c2"}, headers={}),
-        ]
+        """Multiple IDs — single request with multiple id query params."""
+        mock_request.return_value = Response(
+            200,
+            json={
+                "items": [{"id": "c1"}, {"id": "c2"}],
+                "size": 2,
+            },
+            headers={},
+        )
         result = await client.get_contractors(["c1", "c2"])
         assert len(result["items"]) == 2
 

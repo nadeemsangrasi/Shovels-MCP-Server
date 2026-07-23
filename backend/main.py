@@ -116,6 +116,19 @@ async def require_api_key(request: Request, call_next):
                     },
                 )
 
+            if response.status_code == 402:
+                # Trial credit limit reached — surface the upgrade URL
+                body = response.json()
+                detail = body.get("detail", "Trial credit limit reached.")
+                return JSONResponse(
+                    status_code=402,
+                    content={
+                        "error": "credit_exhausted",
+                        "code": 3,
+                        "message": detail,
+                    },
+                )
+
             if response.status_code == 200:
                 _validated_keys.add(api_key)
             else:

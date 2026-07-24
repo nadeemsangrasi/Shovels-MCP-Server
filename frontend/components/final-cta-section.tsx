@@ -42,7 +42,7 @@ export function FinalCtaSection() {
               className="border-border text-foreground hover:bg-secondary bg-transparent gap-2"
               asChild
             >
-              <a href="https://github.com/daniyalnagori/agentskill-mcp">
+              <a href="https://github.com/nadeemsangrasi/Shovels-MCP-Server.git">
                 <Github className="h-4 w-4" />
                 View on GitHub
               </a>
